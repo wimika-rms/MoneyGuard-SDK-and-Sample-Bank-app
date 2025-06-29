@@ -41,10 +41,13 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp) // Add bottom padding for the logout button
         ) {
             DashboardHeader(userName = userFullName)
             Spacer(modifier = Modifier.height(24.dp))
             AccountCard()
+
+            Spacer(modifier = Modifier.height(24.dp)) // Add spacing between cards and grid
 
             Spacer(modifier = Modifier.height(24.dp))
             ActionsGrid()
