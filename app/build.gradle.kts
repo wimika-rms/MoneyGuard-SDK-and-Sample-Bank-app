@@ -59,12 +59,14 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
 
     implementation(libs.okhttp3)
     implementation(libs.retrofit)
     implementation(libs.gson)
     implementation(libs.okhttp3.logging)
     implementation(libs.gson.converter)
+
     
     // Joda Time dependency required by MoneyGuard SDK
     implementation("joda-time:joda-time:2.12.5")
