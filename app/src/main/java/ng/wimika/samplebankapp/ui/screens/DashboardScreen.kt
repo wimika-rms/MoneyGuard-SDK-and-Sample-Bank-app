@@ -2,12 +2,11 @@ package ng.wimika.samplebankapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,9 +28,7 @@ fun DashboardScreen(
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
-    // The original `isMoneyguardEnabled` logic is preserved here but the UI is built
-    // to match the "not protected" state from the screenshot.
-   //  val isMoneyguardEnabled = preferenceManager?.isMoneyguardEnabled() ?: false
+    val isMoneyguardEnabled = preferenceManager?.isMoneyguardEnabled() ?: false
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -41,28 +38,47 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp) // Add bottom padding for the logout button
         ) {
-            DashboardHeader(userName = userFullName)
+            DashboardHeader(
+                userName = userFullName,
+                isProtected = isMoneyguardEnabled
+            )
             Spacer(modifier = Modifier.height(24.dp))
             AccountCard()
-
-            Spacer(modifier = Modifier.height(24.dp)) // Add spacing between cards and grid
-
+            // Pager indicator from original UI
+            PagerIndicator(pageCount = 4, currentPage = 0)
             Spacer(modifier = Modifier.height(24.dp))
             ActionsGrid()
+
+            // Spacer to push the logout button to the bottom
+            Spacer(Modifier.weight(1f))
+
+            // Logout Button
+            OutlinedButton(
+                onClick = {
+                    // Clear all preferences before logging out
+                    preferenceManager?.clear()
+                    onLogout()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp) // Add padding at the bottom of the screen
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFF97316))
+            ) {
+                Text(
+                    text = "Logout",
+                    color = Color(0xFFF97316),
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun DashboardHeader(userName: String) {
-    val preferenceManager = MoneyGuardClientApp.preferenceManager
-    val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
-    // The original `isMoneyguardEnabled` logic is preserved here but the UI is built
-    // to match the "not protected" state from the screenshot.
-      val isMoneyguardEnabled = preferenceManager?.isMoneyguardEnabled() ?: false
-
+private fun DashboardHeader(userName: String, isProtected: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -83,20 +99,18 @@ private fun DashboardHeader(userName: String) {
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Text(
-                text = if (isMoneyguardEnabled) {
+                text = if (isProtected) {
                     "Launch MoneyGuard"
                 } else {
                     "Protect your account now"
                 },
                 color = Color.White,
-                fontSize = 8.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold
             )
         }
 
-
     }
-
 }
 
 @Composable
@@ -104,12 +118,11 @@ private fun AccountCard() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp),
+            .height(200.dp), // Restored original height for better layout
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF97316)) // Vibrant Orange
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // The darker orange curve can be added here as a background element if needed
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -136,35 +149,70 @@ private fun AccountCard() {
                         )
                     }
                     Icon(
-                        imageVector = Icons.Outlined.VisibilityOff,
+                        imageVector = Icons.Default.VisibilityOff, // Fixed Icon
                         contentDescription = "Hide Balance",
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
                 }
                 // Bottom section with VISA logo and card number
-
-
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "VISA",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Italic
+                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(".. / ..", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
+                        Text(".... .... .... 3040", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
     }
+}
 
-
-
+@Composable
+private fun PagerIndicator(pageCount: Int, currentPage: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 20.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        repeat(pageCount) { iteration ->
+            val color = if (currentPage == iteration) Color(0xFFF97316) else Color.LightGray.copy(alpha = 0.5f)
+            val size = if (currentPage == iteration) 10.dp else 8.dp
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .clip(CircleShape)
+                    .background(color)
+                    .size(size)
+            )
+        }
+    }
+}
 
 @Composable
 private fun ActionsGrid() {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ActionCard(icon = Icons.Outlined.Article, text = "Account\nStatement", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Outlined.StarOutline, text = "Pay bills", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Outlined.History, text = "Recent\nTransfers", modifier = Modifier.weight(1f))
+            // Fixed icons to use core material library
+            ActionCard(icon = Icons.Default.ReceiptLong, text = "Account\nStatement", modifier = Modifier.weight(1f))
+            ActionCard(icon = Icons.Default.StarBorder, text = "Pay bills", modifier = Modifier.weight(1f))
+            ActionCard(icon = Icons.Default.Refresh, text = "Recent\nTransfers", modifier = Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ActionCard(icon = Icons.Outlined.Print, text = "Print\nReceipts", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Outlined.StarOutline, text = "Make\nTransfer", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Outlined.MonetizationOn, text = "Get Loan", modifier = Modifier.weight(1f))
+            ActionCard(icon = Icons.Default.Print, text = "Print\nReceipts", modifier = Modifier.weight(1f))
+            ActionCard(icon = Icons.Default.StarBorder, text = "Make\nTransfer", modifier = Modifier.weight(1f))
+            ActionCard(icon = Icons.Default.AttachMoney, text = "Get Loan", modifier = Modifier.weight(1f))
         }
     }
 }
