@@ -3,29 +3,117 @@ package ng.wimika.samplebankapp.ui.navigation
 import androidx.compose.runtime.*
 import ng.wimika.samplebankapp.ui.screens.DashboardScreen
 import ng.wimika.samplebankapp.ui.screens.LoginScreen
+import ng.wimika.samplebankapp.ui.screens.OnboardingInfoScreen
+import ng.wimika.samplebankapp.ui.screens.AccountSelectionScreen
+import ng.wimika.samplebankapp.ui.screens.CoverageLimitSelectionScreen
+import ng.wimika.samplebankapp.ui.screens.PolicyOptionSelectionScreen
+import ng.wimika.samplebankapp.ui.screens.SummaryScreen
+import ng.wimika.samplebankapp.ui.screens.CheckoutScreen
+
+sealed class Screen {
+    object Login : Screen()
+    object Dashboard : Screen()
+    object OnboardingInfo : Screen()
+    object AccountSelection : Screen()
+    object CoverageLimitSelection : Screen()
+    object PolicyOptionSelection : Screen()
+    object Summary : Screen()
+    object Checkout : Screen()
+}
 
 @Composable
 fun AppNavigation() {
-    var isLoggedIn by remember { mutableStateOf(false) }
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.Login) }
     
     // Check if user is already logged in
     LaunchedEffect(Unit) {
         val preferenceManager = ng.wimika.samplebankapp.MoneyGuardClientApp.preferenceManager
         val sessionId = preferenceManager?.getBankSessionId()
-        isLoggedIn = !sessionId.isNullOrBlank()
+        if (!sessionId.isNullOrBlank()) {
+            currentScreen = Screen.Dashboard
+        }
     }
 
-    if (isLoggedIn) {
-        DashboardScreen(
-            onLogout = {
-                isLoggedIn = false
-            }
-        )
-    } else {
-        LoginScreen(
-            onLoginSuccess = {
-                isLoggedIn = true
-            }
-        )
+    when (currentScreen) {
+        Screen.Login -> {
+            LoginScreen(
+                onLoginSuccess = {
+                    currentScreen = Screen.Dashboard
+                }
+            )
+        }
+        Screen.Dashboard -> {
+            DashboardScreen(
+                onLogout = {
+                    currentScreen = Screen.Login
+                },
+                onProtectAccount = {
+                    currentScreen = Screen.OnboardingInfo
+                }
+            )
+        }
+        Screen.OnboardingInfo -> {
+            OnboardingInfoScreen(
+                onGetStarted = {
+                    currentScreen = Screen.AccountSelection
+                },
+                onLearnMore = { url ->
+                    // This is now handled directly in the OnboardingInfoScreen
+                },
+                onBack = {
+                    currentScreen = Screen.Dashboard
+                }
+            )
+        }
+        Screen.AccountSelection -> {
+            AccountSelectionScreen(
+                onBack = {
+                    currentScreen = Screen.OnboardingInfo
+                },
+                onContinue = {
+                    currentScreen = Screen.CoverageLimitSelection
+                }
+            )
+        }
+        Screen.CoverageLimitSelection -> {
+            CoverageLimitSelectionScreen(
+                onBack = {
+                    currentScreen = Screen.AccountSelection
+                },
+                onContinue = {
+                    currentScreen = Screen.PolicyOptionSelection
+                }
+            )
+        }
+        Screen.PolicyOptionSelection -> {
+            PolicyOptionSelectionScreen(
+                onBack = {
+                    currentScreen = Screen.CoverageLimitSelection
+                },
+                onContinue = {
+                    currentScreen = Screen.Summary
+                }
+            )
+        }
+        Screen.Summary -> {
+            SummaryScreen(
+                onBack = {
+                    currentScreen = Screen.PolicyOptionSelection
+                },
+                onCheckout = {
+                    currentScreen = Screen.Checkout
+                }
+            )
+        }
+        Screen.Checkout -> {
+            CheckoutScreen(
+                onBack = {
+                    currentScreen = Screen.Summary
+                },
+                onProceed = {
+                    currentScreen = Screen.Dashboard
+                }
+            )
+        }
     }
 } 

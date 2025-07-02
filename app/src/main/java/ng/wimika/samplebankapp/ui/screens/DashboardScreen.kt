@@ -19,16 +19,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onProtectAccount: () -> Unit
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
-    val isMoneyguardEnabled = preferenceManager?.isMoneyguardEnabled() ?: false
+    val sdkService = MoneyGuardClientApp.sdkService;
+    // State for MoneyGuard status
+    var moneyguardStatus by remember { mutableStateOf<MoneyGuardAppStatus?>(null) }
+    // LaunchedEffect to handle the suspend function call
+    LaunchedEffect(key1 = Unit) {
+        preferenceManager?.let { pref ->
+            val token = pref.getMoneyGuardToken()
+            token?.let {
+                moneyguardStatus = sdkService?.utility()?.checkMoneyguardStatus(it)
+            }
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -41,7 +54,8 @@ fun DashboardScreen(
         ) {
             DashboardHeader(
                 userName = userFullName,
-                isProtected = isMoneyguardEnabled
+                isProtected = moneyguardStatus == MoneyGuardAppStatus.Active,
+                onProtectAccount = onProtectAccount
             )
             Spacer(modifier = Modifier.height(24.dp))
             AccountCard()
@@ -78,7 +92,7 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader(userName: String, isProtected: Boolean) {
+private fun DashboardHeader(userName: String, isProtected: Boolean, onProtectAccount: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -93,7 +107,12 @@ private fun DashboardHeader(userName: String, isProtected: Boolean) {
         )
         Spacer(Modifier.weight(1f))
         Button(
-            onClick = { /* TODO: Handle "Protect account" action */ },
+            onClick = { 
+                if (!isProtected) {
+                    onProtectAccount()
+                }
+                // TODO: Handle "Launch MoneyGuard" action when protected
+            },
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
@@ -102,7 +121,7 @@ private fun DashboardHeader(userName: String, isProtected: Boolean) {
                 text = if (isProtected) {
                     "Launch MoneyGuard"
                 } else {
-                    "Protect your account now"
+                    "Protect Account"
                 },
                 color = Color.White,
                 fontSize = 10.sp,

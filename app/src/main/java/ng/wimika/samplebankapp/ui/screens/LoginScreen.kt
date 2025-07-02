@@ -163,7 +163,7 @@ fun LoginScreen(
                             showError = false
 
                             try {
-                                loginRepository.login(username, password).collect { response ->
+                                loginRepository.login(username.trim(), password).collect { response ->
                                     val sessionData = response.data
                                     if (sessionData != null && sessionData.sessionId.isNotEmpty()) {
                                         val preferenceManager = MoneyGuardClientApp.preferenceManager
@@ -253,7 +253,7 @@ private fun SabiTextField(
     )
 }
 
-// --- The existing helper function is preserved exactly as it was ---
+
 private suspend fun registerWithMoneyguard(
     sessionId: String,
     preferenceManager: IPreferenceManager?,
@@ -269,19 +269,19 @@ private suspend fun registerWithMoneyguard(
                 is MoneyGuardResult.Success -> {
                     val sessionResponse = result.data
                     if (sessionResponse.token.isNotEmpty()) {
-                        preferenceManager?.saveMoneyguardEnabled(true)
+                       // preferenceManager?.saveMoneyguardEnabled(true)
                         preferenceManager?.saveMoneyGuardToken(sessionResponse.token)
                         preferenceManager?.saveMoneyguardUserNames(
                             sessionResponse.userDetails.firstName,
                             sessionResponse.userDetails.lastName
                         )
                     } else {
-                        preferenceManager?.saveMoneyguardEnabled(false)
+                        //preferenceManager?.saveMoneyguardEnabled(false)
                     }
                     onLoginSuccess()
                 }
                 is MoneyGuardResult.Failure -> {
-                    preferenceManager?.saveMoneyguardEnabled(false)
+                    //preferenceManager?.saveMoneyguardEnabled(false)
                     onLoginSuccess()
                 }
                 is MoneyGuardResult.Loading -> {
@@ -290,7 +290,7 @@ private suspend fun registerWithMoneyguard(
             }
         }
     } catch (e: Exception) {
-        preferenceManager?.saveMoneyguardEnabled(false)
+        //preferenceManager?.saveMoneyguardEnabled(false)
         onLoginSuccess()
     }
 }

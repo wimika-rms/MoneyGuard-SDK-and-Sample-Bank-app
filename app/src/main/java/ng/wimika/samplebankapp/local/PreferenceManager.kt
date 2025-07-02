@@ -3,6 +3,7 @@ package ng.wimika.samplebankapp.local
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.google.gson.Gson
 
 class PreferenceManager(private val context: Context): IPreferenceManager {
 
@@ -20,11 +21,16 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         // User names from Moneyguard
         private const val MONEYGUARD_FIRST_NAME = "moneyguard_first_name"
         private const val MONEYGUARD_LAST_NAME = "moneyguard_last_name"
+        
+        // MoneyGuard setup preferences
+        private const val MONEYGUARD_SETUP_PREFERENCES = "moneyguard_setup_preferences"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
         context.getSharedPreferences("moneyguard.client.preference", Context.MODE_PRIVATE)
     }
+    
+    private val gson = Gson()
 
     override fun saveMoneyGuardToken(token: String?) {
         sharedPreferences.edit { putString(MONEY_GUARD_TOKEN, token) }
@@ -59,13 +65,13 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
     }
 
     // Moneyguard enabled status
-    override fun saveMoneyguardEnabled(enabled: Boolean) {
-        sharedPreferences.edit { putBoolean(MONEYGUARD_ENABLED, enabled) }
-    }
+//    override fun saveMoneyguardEnabled(enabled: Boolean) {
+//        sharedPreferences.edit { putBoolean(MONEYGUARD_ENABLED, enabled) }
+//    }
 
-    override fun isMoneyguardEnabled(): Boolean {
-        return sharedPreferences.getBoolean(MONEYGUARD_ENABLED, false)
-    }
+//    override fun isMoneyguardEnabled(): Boolean {
+//        return sharedPreferences.getBoolean(MONEYGUARD_ENABLED, false)
+//    }
 
     // User names from Moneyguard
     override fun saveMoneyguardUserNames(firstName: String?, lastName: String?) {
@@ -81,6 +87,25 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
 
     override fun getMoneyguardLastName(): String? {
         return sharedPreferences.getString(MONEYGUARD_LAST_NAME, null)
+    }
+
+    // MoneyGuard setup preferences
+    override fun saveMoneyGuardSetupPreferences(preferences: MoneyGuardSetupPreferences?) {
+        val json = gson.toJson(preferences)
+        sharedPreferences.edit { putString(MONEYGUARD_SETUP_PREFERENCES, json) }
+    }
+
+    override fun getMoneyGuardSetupPreferences(): MoneyGuardSetupPreferences? {
+        val json = sharedPreferences.getString(MONEYGUARD_SETUP_PREFERENCES, null)
+        return if (json != null) {
+            try {
+                gson.fromJson(json, MoneyGuardSetupPreferences::class.java)
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
     }
 
     override fun clear() {
