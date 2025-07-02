@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -16,14 +17,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import ng.wimika.moneyguard_sdk.services.onboarding_info.OnboardingInfo
 import ng.wimika.moneyguard_sdk.services.onboarding_info.models.OnboardingInfoResult
 import ng.wimika.samplebankapp.MoneyGuardClientApp
+import ng.wimika.samplebankapp.R
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,15 +89,21 @@ fun OnboardingInfoScreen(
     
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Welcome to MoneyGuard") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 10.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                 }
-            )
-        }
+                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(48.dp)) // To balance the back arrow
+            }
+        },
+        containerColor = Color.White
     ) { innerPadding ->
         if (isLoading) {
             Box(
@@ -111,10 +120,21 @@ fun OnboardingInfoScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                        .padding(horizontal = 24.dp)
+                        .padding(top = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    // Carousel/Slider section
+                    // Logo (centered at the top)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_shield_logo), // Replace with your logo asset
+                        contentDescription = "MoneyGuard Logo",
+                        tint = Color(0xFF8854F6),
+                        modifier = Modifier.size(96.dp)
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    // Slider section
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -142,95 +162,84 @@ fun OnboardingInfoScreen(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Content for current page
                             if (data.infoList.isNotEmpty()) {
                                 val currentInfo = data.infoList[currentPage]
-                                
-                                // Title
+                                // Title (bold, large)
                                 Text(
                                     text = currentInfo.title,
-                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                    style = MaterialTheme.typography.headlineSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 24.sp
+                                        fontSize = 22.sp
                                     ),
+                                    color = Color.Black,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(bottom = 16.dp)
                                 )
-                                
-                                // Body text
+                                // Body (regular)
                                 Text(
                                     text = currentInfo.body,
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        fontSize = 16.sp
-                                    ),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                                    color = Color(0xFF6B6B6B),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(bottom = 32.dp)
                                 )
                             }
                         }
                     }
-                    
-                    // Page indicator - moved below the content
+                    // Pager indicator
                     if (data.infoList.size > 1) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
+                            modifier = Modifier.height(16.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             repeat(data.infoList.size) { index ->
                                 Box(
                                     modifier = Modifier
                                         .padding(horizontal = 4.dp)
-                                        .size(8.dp)
+                                        .size(if (index == currentPage) 16.dp else 8.dp, 8.dp)
                                         .background(
-                                            color = if (index == currentPage) 
-                                                MaterialTheme.colorScheme.primary 
-                                            else 
-                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            color = if (index == currentPage) Color(0xFF8854F6) else Color(0xFFE0E0E0),
                                             shape = MaterialTheme.shapes.small
                                         )
                                 )
                             }
                         }
+                    } else {
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
-                    
-                    // Action buttons
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Spacer(modifier = Modifier.height(32.dp))
+                    // Get Started button
+                    Button(
+                        onClick = onGetStarted,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8854F6))
                     ) {
-                        // Get Started button
-                        Button(
-                            onClick = onGetStarted,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text(
-                                text = "Get Started",
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Medium
-                                )
-                            )
-                        }
-                        
-                        // Learn More button
-                        OutlinedButton(
-                            onClick = { openUrl(data.learnMoreUrl) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Text(
-                                text = "Learn More",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
+                        Text(
+                            text = "Get Started",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
+                        )
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    // Learn More
+                    TextButton(
+                        //onClick = { onLearnMore(data.learnMoreUrl) },
+                        onClick = { onLearnMore(data.learnMoreUrl) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Learn More",
+                            color = Color(0xFF8854F6),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             } ?: run {
-                // No data available
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

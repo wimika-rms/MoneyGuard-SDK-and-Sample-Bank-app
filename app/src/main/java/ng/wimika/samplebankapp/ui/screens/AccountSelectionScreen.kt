@@ -1,17 +1,27 @@
 package ng.wimika.samplebankapp.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.times
 import ng.wimika.moneyguard_sdk.services.moneyguard_policy.models.BankAccount
 import ng.wimika.moneyguard_sdk.services.policy.MoneyGuardPolicy
 import ng.wimika.samplebankapp.MoneyGuardClientApp
@@ -27,7 +37,7 @@ fun AccountSelectionScreen(
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
     val token = preferenceManager?.getMoneyGuardToken()
-    
+
     var accounts by remember { mutableStateOf<List<BankAccount>>(emptyList()) }
     var selectedAccounts by remember { mutableStateOf<Set<String>>(emptySet()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -73,28 +83,71 @@ fun AccountSelectionScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Accounts to Cover") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 54.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = 32.dp)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+            // Top bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.offset(x = -12.dp)
+                ) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Accounts to Cover",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    color = Color.Black,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.width(48.dp)) // To balance the back arrow
+            }
+            // Subtitle
+            Text(
+                text = "Select the account you want to protect, you can protect more than one account.",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                color = Color(0xFF6B6B6B),
+                modifier = Modifier.padding(bottom = 16.dp),
+                textAlign = TextAlign.Start
+            )
+            // Select All
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp)
+            ) {
+                RadioButton(
+                    selected = selectedAccounts.size == accounts.size && accounts.isNotEmpty(),
+                    onClick = {
+                        selectedAccounts = if (selectedAccounts.size == accounts.size) emptySet() else accounts.map { it.id.toString() }.toSet()
+                    },
+                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
+                )
+                Text(
+                    text = "Select all",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                    color = if (selectedAccounts.size == accounts.size && accounts.isNotEmpty()) Color(0xFF8854F6) else Color(0xFF6B6B6B),
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
+            // Accounts list
+            if (isLoading) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             } else if (error != null) {
                 Text(
                     text = "Error: $error",
@@ -102,87 +155,84 @@ fun AccountSelectionScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
-                // Select All section
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Select All")
-                    Checkbox(
-                        checked = selectedAccounts.size == accounts.size && accounts.isNotEmpty(),
-                        onCheckedChange = { checked ->
-                            selectedAccounts = if (checked) {
-                                accounts.map { it.id.toString() }.toSet()
-                            } else {
-                                emptySet()
-                            }
-                        }
-                    )
-                }
-
-                // Accounts list
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(accounts) { account ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(8.dp),
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selectedAccounts.contains(account.id.toString())) Color(0xFF8854F6) else Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .background(Color.White, shape = RoundedCornerShape(16.dp))
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = selectedAccounts.contains(account.id.toString()),
-                                onCheckedChange = { checked ->
-                                    selectedAccounts = if (checked) {
-                                        selectedAccounts + account.id.toString()
-                                    } else {
+                            RadioButton(
+                                selected = selectedAccounts.contains(account.id.toString()),
+                                onClick = {
+                                    selectedAccounts = if (selectedAccounts.contains(account.id.toString())) {
                                         selectedAccounts - account.id.toString()
+                                    } else {
+                                        selectedAccounts + account.id.toString()
                                     }
-                                }
+                                },
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
                             )
                             Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 8.dp)
+                                modifier = Modifier.padding(start = 12.dp)
                             ) {
                                 Text(
-                                    text = account.number,
-                                    style = MaterialTheme.typography.bodyLarge
+                                    text = account.type,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp
+                                    ),
+                                    color = Color.Black
                                 )
                                 Text(
-                                    text = "${account.type}",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = account.number,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                                    color = Color(0xFF6B6B6B)
                                 )
                             }
                         }
                     }
                 }
-
-                // Continue button
-                Button(
-                    onClick = { 
-                        // Save selected accounts to preferences
-                        val currentPreferences = preferenceManager?.getMoneyGuardSetupPreferences() 
-                            ?: MoneyGuardSetupPreferences()
-                        val updatedPreferences = currentPreferences.copy(
-                            accountIds = selectedAccounts.toList()
-                        )
-                        preferenceManager?.saveMoneyGuardSetupPreferences(updatedPreferences)
-                        onContinue()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    enabled = selectedAccounts.isNotEmpty()
-                ) {
-                    Text("Continue")
-                }
             }
+            Spacer(modifier = Modifier.height(16.dp))
+            // Next button
+            Button(
+                onClick = {
+                    // Save selected accounts to preferences
+                    val currentPreferences = preferenceManager?.getMoneyGuardSetupPreferences()
+                        ?: MoneyGuardSetupPreferences()
+                    val updatedPreferences = currentPreferences.copy(
+                        accountIds = selectedAccounts.toList()
+                    )
+                    preferenceManager?.saveMoneyGuardSetupPreferences(updatedPreferences)
+                    onContinue()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(vertical = 8.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8854F6)),
+                enabled = selectedAccounts.isNotEmpty()
+            ) {
+                Text(
+                    text = "Next",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
-} 
+}
