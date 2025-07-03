@@ -62,6 +62,10 @@ fun DashboardScreen(
             )
             Spacer(modifier = Modifier.height(24.dp))
             AccountCard()
+            // Risk Score Card - only show when MoneyGuard is Active
+            if (moneyguardStatus == MoneyGuardAppStatus.Active) {
+                RiskScoreCard()
+            }
             // Pager indicator from original UI
             PagerIndicator(pageCount = 4, currentPage = 0)
             Spacer(modifier = Modifier.height(24.dp))
@@ -238,13 +242,8 @@ private fun ActionsGrid() {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Fixed icons to use core material library
             ActionCard(icon = Icons.Default.ReceiptLong, text = "Account\nStatement", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Default.StarBorder, text = "Pay bills", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Default.Refresh, text = "Recent\nTransfers", modifier = Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ActionCard(icon = Icons.Default.Print, text = "Print\nReceipts", modifier = Modifier.weight(1f))
             ActionCard(icon = Icons.Default.StarBorder, text = "Make\nTransfer", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Default.AttachMoney, text = "Get Loan", modifier = Modifier.weight(1f))
+            ActionCard(icon = Icons.Default.Refresh, text = "Recent\nTransfers", modifier = Modifier.weight(1f))
         }
     }
 }
@@ -284,6 +283,116 @@ private fun ActionCard(icon: ImageVector, text: String, modifier: Modifier = Mod
                 textAlign = TextAlign.Center,
                 lineHeight = 16.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun RiskScoreCard() {
+    val sdkService = MoneyGuardClientApp.sdkService
+    val preferenceManager = MoneyGuardClientApp.preferenceManager
+    val token = preferenceManager?.getMoneyGuardToken()
+    var riskScore by remember { mutableStateOf<Int?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // Fetch risk score on first composition
+    LaunchedEffect(token) {
+        if (sdkService != null && !token.isNullOrEmpty()) {
+            try {
+                val riskProfile = sdkService.riskProfile()?.getRiskProfile()
+                riskScore = riskProfile?.sumOf { it.score.value.toInt() }
+            } catch (e: Exception) {
+                riskScore = null
+            } finally {
+                isLoading = false
+            }
+        } else {
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFFF97316))
+        }
+        return
+    }
+    if (riskScore == null) return
+
+    // Determine the message based on the risk score
+    val message = when {
+        riskScore!! < 40 -> "Your risk score is very low, you are making it easy for cyber criminals to take your money."
+        riskScore!! in 40..49 -> "Your risk score is low, take modules to improve it."
+        riskScore!! in 50..59 -> "Your risk score is good, but it can be better."
+        riskScore!! in 60..69 -> "Your risk score is good, but it can be better."
+        riskScore!! >= 70 -> "Your risk score is looking good, take modules to get extra points."
+        else -> "Your risk score is good but it can be better."
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+            .background(Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left: Texts
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Risk Score",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF7B8794)
+                )
+            }
+            // Right: Score box
+            Card(
+                modifier = Modifier
+                    .padding(start = 16.dp)
+                    .size(width = 60.dp, height = 60.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F0)),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = riskScore.toString(),
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFFFF2D2D),
+                        textAlign = TextAlign.Center
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(28.dp)
+                            .height(2.dp)
+                            .background(Color(0xFFFF2D2D).copy(alpha = 0.5f), shape = RoundedCornerShape(1.dp))
+                    )
+                    Text(
+                        text = "100",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFFF2D2D),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
 }
