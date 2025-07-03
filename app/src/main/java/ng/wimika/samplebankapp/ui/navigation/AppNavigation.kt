@@ -9,6 +9,7 @@ import ng.wimika.samplebankapp.ui.screens.CoverageLimitSelectionScreen
 import ng.wimika.samplebankapp.ui.screens.PolicyOptionSelectionScreen
 import ng.wimika.samplebankapp.ui.screens.SummaryScreen
 import ng.wimika.samplebankapp.ui.screens.CheckoutScreen
+import ng.wimika.samplebankapp.ui.screens.DownloadMoneyGuardScreen
 
 sealed class Screen {
     object Login : Screen()
@@ -19,6 +20,7 @@ sealed class Screen {
     object PolicyOptionSelection : Screen()
     object Summary : Screen()
     object Checkout : Screen()
+    object DownloadMoneyGuard : Screen()
 }
 
 @Composable
@@ -49,6 +51,9 @@ fun AppNavigation() {
                 },
                 onProtectAccount = {
                     currentScreen = Screen.OnboardingInfo
+                },
+                onDownloadMoneyGuard = {
+                    currentScreen = Screen.DownloadMoneyGuard
                 }
             )
         }
@@ -111,6 +116,13 @@ fun AppNavigation() {
                     currentScreen = Screen.Summary
                 },
                 onProceed = {
+                    currentScreen = Screen.DownloadMoneyGuard
+                }
+            )
+        }
+        Screen.DownloadMoneyGuard -> {
+            DownloadMoneyGuardScreen(
+                onDownloadComplete = {
                     currentScreen = Screen.Dashboard
                 }
             )

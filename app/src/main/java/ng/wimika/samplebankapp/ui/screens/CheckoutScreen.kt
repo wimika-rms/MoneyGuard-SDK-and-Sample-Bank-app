@@ -10,6 +10,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.local.MoneyGuardSetupPreferences
 import kotlinx.coroutines.launch
@@ -69,15 +76,30 @@ fun CheckoutScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Checkout") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 10.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                 }
-            )
-        }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Checkout",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    color = Color.Black,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.width(48.dp))
+            }
+        },
+        containerColor = Color.White
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -87,26 +109,78 @@ fun CheckoutScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Ready to complete your MoneyGuard purchase?", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(24.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Direct Account Debit",
-                            style = MaterialTheme.typography.titleLarge
+                // Summary box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF8854F6),
+                            shape = RoundedCornerShape(12.dp)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        // Account Selection Dropdown
+                        .background(Color(0xFFF8F6FF), shape = RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "The account chosen will be debited for subsequent subscription renewals.",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                            color = Color(0xFF6B6B6B)
+                        )
+                        Text(
+                            text = prefs.subscriptionPlan,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                            color = Color(0xFF8854F6)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                // Payment Options
+                Text(
+                    text = "Payment Options",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = Color.Black,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF8854F6),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .background(Color.White, shape = RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(
+                                selected = true,
+                                onClick = {},
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
+                            )
+                            Column(modifier = Modifier.padding(start = 8.dp)) {
+                                Text(
+                                    text = "Direct Account Debit",
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.Black
+                                )
+                                Text(
+                                    text = "Pay directly from your bank account",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                                    color = Color(0xFF6B6B6B)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // Account selection dropdown
                         ExposedDropdownMenuBox(
                             expanded = expanded,
                             onExpandedChange = { expanded = it }
@@ -144,6 +218,12 @@ fun CheckoutScreen(
                                 }
                             }
                         }
+                        Text(
+                            text = "The account chosen will be debited for subsequent subscription renewals.",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                            color = Color(0xFF6B6B6B),
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -185,12 +265,16 @@ fun CheckoutScreen(
                         }
                     },
                     enabled = selectedAccount != null && !isLoading,
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8854F6)),
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
-                        Text("Proceed", style = MaterialTheme.typography.bodyLarge)
+                        Text("Pay", style = MaterialTheme.typography.bodyLarge.copy(color = Color.White, fontSize = 18.sp))
                     }
                 }
             }

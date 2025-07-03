@@ -1,6 +1,7 @@
 package ng.wimika.samplebankapp.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import ng.wimika.moneyguard_sdk.services.moneyguard_policy.models.PolicyOption
 import ng.wimika.moneyguard_sdk.services.policy.MoneyGuardPolicy
 import ng.wimika.samplebankapp.MoneyGuardClientApp
@@ -79,22 +88,46 @@ fun PolicyOptionSelectionScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Select Policy Option") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 10.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                 }
-            )
-        }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Choose your Plan",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    color = Color.Black,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.width(48.dp))
+            }
+        },
+        containerColor = Color.White
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp),
         ) {
+            // Subtitle
+            Text(
+                text = "Select the subscription plan you want.",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                color = Color(0xFF6B6B6B),
+                modifier = Modifier.padding(bottom = 16.dp),
+                textAlign = TextAlign.Start
+            )
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -106,59 +139,93 @@ fun PolicyOptionSelectionScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
-                // Policy options list
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(policyOptions) { option ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(8.dp),
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selectedOption?.id == option.id) Color(0xFF8854F6) else Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .background(Color.White, shape = RoundedCornerShape(16.dp))
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
                                 selected = selectedOption?.id == option.id,
-                                onClick = { selectedOption = option }
+                                onClick = { selectedOption = option },
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
                             )
                             Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 8.dp)
+                                modifier = Modifier.padding(start = 12.dp)
                             ) {
                                 Text(
-                                    text = CurrencyFormatter.format(option.priceAndTerm.price),
-                                    style = MaterialTheme.typography.headlineSmall
+                                    text = option.priceAndTerm.term,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                                    color = Color.Black
                                 )
-                                Text(
-                                    text = "Term: ${option.priceAndTerm.term}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text(
+                                        text = CurrencyFormatter.format(option.priceAndTerm.price),
+                                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                                        color = Color(0xFF8854F6)
+                                    )
+//                                    if (option.priceAndTerm.savingsPercent > 0) {
+//                                        Spacer(modifier = Modifier.width(8.dp))
+//                                        Text(
+//                                            text = "Save ${option.priceAndTerm.savingsPercent}%",
+//                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+//                                            color = Color(0xFF8854F6)
+//                                        )
+//                                    }
+                                }
                             }
                         }
                     }
                 }
-
-                // Auto-renew toggle
-                Row(
+                // Auto-renew box
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(top = 8.dp)
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF8854F6),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .background(Color(0xFFF8F6FF), shape = RoundedCornerShape(12.dp))
+                        .padding(16.dp)
                 ) {
-                    Text(
-                        text = "Auto-renew Policy",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Switch(
-                        checked = autoRenew,
-                        onCheckedChange = { autoRenew = it }
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Auto renew",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                color = Color.Black
+                            )
+                            Text(
+                                text = "The best way to stay vigilant and enjoy our service without interruptions is auto-renewal. Turn it on and have peace of mind!",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                                color = Color(0xFF6B6B6B)
+                            )
+                        }
+                        Switch(
+                            checked = autoRenew,
+                            onCheckedChange = { autoRenew = it },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF8854F6))
+                        )
+                    }
                 }
-
-                // Continue button
+                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { 
                         selectedOption?.let { option ->
@@ -175,10 +242,16 @@ fun PolicyOptionSelectionScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8854F6)),
                     enabled = selectedOption != null
                 ) {
-                    Text("Continue")
+                    Text(
+                        text = "Next",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
+                    )
                 }
             }
         }

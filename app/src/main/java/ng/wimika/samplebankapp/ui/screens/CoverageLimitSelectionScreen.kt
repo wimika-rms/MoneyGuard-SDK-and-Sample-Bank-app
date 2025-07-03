@@ -1,9 +1,12 @@
 package ng.wimika.samplebankapp.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -12,6 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.PathEffect
 import ng.wimika.moneyguard_sdk.services.moneyguard_policy.models.CoverageLimit
 import ng.wimika.moneyguard_sdk.services.policy.MoneyGuardPolicy
 import ng.wimika.samplebankapp.MoneyGuardClientApp
@@ -76,22 +87,46 @@ fun CoverageLimitSelectionScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Amount to Cover") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 10.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                 }
-            )
-        }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Amount to Cover",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    color = Color.Black,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.width(48.dp))
+            }
+        },
+        containerColor = Color.White
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 54.dp)
+                .padding(horizontal = 20.dp)
+                .padding(top = 8.dp),
         ) {
+            // Subtitle
+            Text(
+                text = "Select the amount you want to cover for your accounts. This cover amount is for all your accounts.",
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                color = Color(0xFF6B6B6B),
+                modifier = Modifier.padding(bottom = 16.dp),
+                textAlign = TextAlign.Start
+            )
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -103,37 +138,67 @@ fun CoverageLimitSelectionScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
-                // Coverage limits list
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(coverageLimits) { limit ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(8.dp),
+                                .border(
+                                    width = 1.dp,
+                                    color = if (selectedLimitId == limit.id) Color(0xFF8854F6) else Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .background(Color.White, shape = RoundedCornerShape(16.dp))
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
                                 selected = selectedLimitId == limit.id,
-                                onClick = { selectedLimitId = limit.id }
+                                onClick = { selectedLimitId = limit.id },
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
                             )
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 8.dp)
-                            ) {
-                                Text(
-                                    text = CurrencyFormatter.format(limit.limit),
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
+                            Text(
+                                text = CurrencyFormatter.format(limit.limit),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 17.sp),
+                                color = Color.Black,
+                                modifier = Modifier.padding(start = 12.dp)
+                            )
                         }
                     }
                 }
-
-                // Continue button
+                // Coverage Notice
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFF8854F6),
+                            shape = RoundedCornerShape(12.dp),
+                            // Dashed border effect
+                            // Compose doesn't support dashed border natively, so we use a solid border for now
+                        )
+                        .background(Color(0xFFF8F6FF), shape = RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = "Coverage Notice",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "This coverage amount would be spread the accounts covered. Claims will be considered for sum of losses from the covered accounts within the coverage amount within the policy duration.",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                            color = Color(0xFF6B6B6B)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { 
                         selectedLimitId?.let { limitId ->
@@ -150,10 +215,16 @@ fun CoverageLimitSelectionScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8854F6)),
                     enabled = selectedLimitId != null
                 ) {
-                    Text("Continue")
+                    Text(
+                        text = "Next",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
+                    )
                 }
             }
         }

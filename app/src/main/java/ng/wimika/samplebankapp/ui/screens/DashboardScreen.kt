@@ -26,7 +26,8 @@ import ng.wimika.samplebankapp.MoneyGuardClientApp
 @Composable
 fun DashboardScreen(
     onLogout: () -> Unit,
-    onProtectAccount: () -> Unit
+    onProtectAccount: () -> Unit,
+    onDownloadMoneyGuard: () -> Unit
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
@@ -54,8 +55,10 @@ fun DashboardScreen(
         ) {
             DashboardHeader(
                 userName = userFullName,
-                isProtected = moneyguardStatus == MoneyGuardAppStatus.Active,
-                onProtectAccount = onProtectAccount
+                //isProtected = moneyguardStatus == MoneyGuardAppStatus.Active,
+                moneyguardStatus,
+                onProtectAccount = onProtectAccount,
+                onDownloadMoneyGuard = onDownloadMoneyGuard
             )
             Spacer(modifier = Modifier.height(24.dp))
             AccountCard()
@@ -92,7 +95,7 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader(userName: String, isProtected: Boolean, onProtectAccount: () -> Unit) {
+private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardAppStatus?, onProtectAccount: () -> Unit, onDownloadMoneyGuard: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,9 +111,19 @@ private fun DashboardHeader(userName: String, isProtected: Boolean, onProtectAcc
         Spacer(Modifier.weight(1f))
         Button(
             onClick = { 
-                if (!isProtected) {
+                if (moneyGuardAppStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled) {
+                    onDownloadMoneyGuard()
+                }
+                else if(moneyGuardAppStatus == MoneyGuardAppStatus.NoPolicyAppInstalled
+                    || moneyGuardAppStatus == MoneyGuardAppStatus.InActive)
+                {
                     onProtectAccount()
                 }
+                else if(moneyGuardAppStatus == MoneyGuardAppStatus.Active)
+                {
+                    MoneyGuardClientApp.sdkService?.utility()?.launchMoneyGuardApp();
+                }
+
                 // TODO: Handle "Launch MoneyGuard" action when protected
             },
             shape = RoundedCornerShape(50),
@@ -118,7 +131,7 @@ private fun DashboardHeader(userName: String, isProtected: Boolean, onProtectAcc
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Text(
-                text = if (isProtected) {
+                text = if (moneyGuardAppStatus == MoneyGuardAppStatus.Active) {
                     "Launch MoneyGuard"
                 } else {
                     "Protect Account"
