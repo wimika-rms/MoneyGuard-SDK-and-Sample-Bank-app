@@ -175,6 +175,10 @@ fun LoginScreen(
     var currentRiskIndex by remember { mutableStateOf(0) }
     var showRiskModal by remember { mutableStateOf(false) }
 
+    // Credential check dialog state
+    var showCredentialDialog by remember { mutableStateOf(false) }
+    var credentialDialogStatus by remember { mutableStateOf<String?>(null) }
+
     val scope = rememberCoroutineScope()
     // In a real app, you'd use dependency injection for the repository
     val loginRepository = remember { LoginRepositoryImpl() }
@@ -183,6 +187,8 @@ fun LoginScreen(
     val moneyGuardPrelaunch: MoneyGuardPrelaunch? = remember {
         MoneyGuardClientApp.sdkService?.prelaunch()
     }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // Perform prelaunch checks when screen loads
     LaunchedEffect(Unit) {
@@ -339,7 +345,37 @@ fun LoginScreen(
                                                 registerWithMoneyguard(
                                                     sessionData.sessionId,
                                                     preferenceManager,
-                                                    onLoginSuccess
+                                                    {
+                                                        val sdkService = MoneyGuardClientApp.sdkService
+                                                        val token = preferenceManager?.getMoneyGuardToken()
+                                                        if (sdkService != null && !token.isNullOrEmpty()) {
+                                                            scope.launch {
+                                                                val status = sdkService.utility()?.checkMoneyguardStatus(token)
+                                                                if (status == ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus.Active) {
+                                                                    val credential = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential(
+                                                                        username = username.trim(),
+                                                                        passwordStartingCharactersHash = password.takeLast(3),
+                                                                        domain = "wimika.ng",
+                                                                        hashAlgorithm = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm.SHA256
+                                                                    )
+                                                                    sdkService.authentication()?.credentialCheck(token, credential) { result ->
+                                                                        if (result is ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult.Success) {
+                                                                            val status = result.data.status
+                                                                            credentialDialogStatus = "Credential Check - $status"
+                                                                            showCredentialDialog = true
+                                                                        } else {
+                                                                            credentialDialogStatus = "Credential Check - RISK_STATUS_UNKNOWN"
+                                                                            showCredentialDialog = true
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    onLoginSuccess()
+                                                                }
+                                                            }
+                                                        } else {
+                                                            onLoginSuccess()
+                                                        }
+                                                    }
                                                 )
                                             } else {
                                                 showError = true
@@ -427,7 +463,7 @@ fun LoginScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     BottomSheetModal(
-                        title = "Security Warning",
+                        title = "Pre-Launch Checks",
                         message = riskMessage,
                         buttonText = "Continue",
                         onButtonClick = {
@@ -441,6 +477,24 @@ fun LoginScreen(
                 }
             }
         }
+    }
+
+    // Show credential check dialog
+    if (showCredentialDialog && credentialDialogStatus != null) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Credential Check") },
+            text = { Text(credentialDialogStatus!!) },
+            confirmButton = {
+                Button(onClick = {
+                    showCredentialDialog = false
+                    credentialDialogStatus = null
+                    onLoginSuccess()
+                }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     @Preview(showBackground = true, widthDp = 375, heightDp = 812)
