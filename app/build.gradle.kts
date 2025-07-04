@@ -68,6 +68,6 @@ dependencies {
     implementation(libs.gson.converter)
 
     
-    // Joda Time dependency required by MoneyGuard SDK
     implementation("joda-time:joda-time:2.12.5")
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 }

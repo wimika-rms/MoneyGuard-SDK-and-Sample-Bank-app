@@ -5,6 +5,7 @@ import ng.wimika.samplebankapp.ui.screens.DashboardScreen
 import ng.wimika.samplebankapp.ui.screens.LoginScreen
 import ng.wimika.samplebankapp.ui.screens.OnboardingInfoScreen
 import ng.wimika.samplebankapp.ui.screens.AccountSelectionScreen
+import ng.wimika.samplebankapp.ui.screens.CheckDebitScreen
 import ng.wimika.samplebankapp.ui.screens.CoverageLimitSelectionScreen
 import ng.wimika.samplebankapp.ui.screens.PolicyOptionSelectionScreen
 import ng.wimika.samplebankapp.ui.screens.SummaryScreen
@@ -21,6 +22,7 @@ sealed class Screen {
     object Summary : Screen()
     object Checkout : Screen()
     object DownloadMoneyGuard : Screen()
+    object CheckDebitTransaction : Screen()
 }
 
 @Composable
@@ -54,6 +56,9 @@ fun AppNavigation() {
                 },
                 onDownloadMoneyGuard = {
                     currentScreen = Screen.DownloadMoneyGuard
+                },
+                onCheckDebitClick = {
+                    currentScreen = Screen.CheckDebitTransaction
                 }
             )
         }
@@ -123,6 +128,17 @@ fun AppNavigation() {
         Screen.DownloadMoneyGuard -> {
             DownloadMoneyGuardScreen(
                 onDownloadComplete = {
+                    currentScreen = Screen.Dashboard
+                }
+            )
+        }
+
+        Screen.CheckDebitTransaction -> {
+            CheckDebitScreen(
+                onLocationPermissionDismissed = {
+                    currentScreen = Screen.Dashboard
+                },
+                onBackClick = {
                     currentScreen = Screen.Dashboard
                 }
             )
