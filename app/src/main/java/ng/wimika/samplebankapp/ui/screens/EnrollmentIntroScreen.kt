@@ -1,5 +1,6 @@
 package ng.wimika.samplebankapp.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,11 +27,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ng.wimika.samplebankapp.R
 
 @Composable
 fun EnrollmentIntroScreen(onStartCapture: () -> Unit) {
@@ -69,12 +72,17 @@ fun EnrollmentIntroScreen(onStartCapture: () -> Unit) {
                     ) {
                         // In a real app, this would be an Image composable with a drawable resource.
                         // Using an Icon as a placeholder.
-                        Icon(
-                            imageVector = Icons.Default.PhonelinkSetup,
+                        Image(
+                            painter = painterResource(id = R.drawable.behavioral_capture),
                             contentDescription = "Behavioural Capture Illustration",
-                            modifier = Modifier.size(150.dp),
-                            tint = purpleColor.copy(alpha = 0.9f)
+                            modifier = Modifier.size(300.dp)
                         )
+//                        Icon(
+//                            imageVector = R.drawable.behavioral_capture,
+//                            contentDescription = "Behavioural Capture Illustration",
+//                            modifier = Modifier.size(150.dp),
+//                            tint = purpleColor.copy(alpha = 0.9f)
+//                        )
                     }
                 }
             }

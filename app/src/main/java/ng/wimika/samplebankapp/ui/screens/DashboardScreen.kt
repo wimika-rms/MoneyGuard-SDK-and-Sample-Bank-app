@@ -28,7 +28,8 @@ fun DashboardScreen(
     onLogout: () -> Unit,
     onProtectAccount: () -> Unit,
     onDownloadMoneyGuard: () -> Unit,
-    onCheckDebitClick: () -> Unit = {}
+    onCheckDebitClick: () -> Unit = {},
+    onEnrollTypingPattern: () -> Unit = {}
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
@@ -70,7 +71,7 @@ fun DashboardScreen(
             // Pager indicator from original UI
           //  PagerIndicator(pageCount = 4, currentPage = 0)
             Spacer(modifier = Modifier.height(24.dp))
-            ActionsGrid(onCheckDebitClick = onCheckDebitClick)
+            ActionsGrid(onCheckDebitClick = onCheckDebitClick, onEnrollTypingPattern = onEnrollTypingPattern)
 
             // Spacer to push the logout button to the bottom
             Spacer(Modifier.weight(1f))
@@ -238,20 +239,20 @@ private fun PagerIndicator(pageCount: Int, currentPage: Int) {
 }
 
 @Composable
-private fun ActionsGrid(onCheckDebitClick: () -> Unit = {}) {
+private fun ActionsGrid(onCheckDebitClick: () -> Unit = {}, onEnrollTypingPattern: () -> Unit = {}) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Fixed icons to use core material library
             ActionCard(icon = Icons.Default.ReceiptLong, text = "Account\nStatement", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Default.StarBorder, text = "Make\nTransfer", modifier = Modifier.weight(1f))
+            ActionCard(icon = Icons.Default.StarBorder, text = "Make\nTransfer", modifier = Modifier.weight(1f), onClick = onCheckDebitClick)
             ActionCard(icon = Icons.Default.Refresh, text = "Recent\nTransfers", modifier = Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             ActionCard(
                 icon = Icons.Default.Security, 
-                text = "Check\nDebit", 
+                text = "Enroll\nTyping Pattern", 
                 modifier = Modifier.weight(1f),
-                onClick = onCheckDebitClick
+                onClick = onEnrollTypingPattern
             )
             // Add empty spaces to maintain grid layout
             Box(modifier = Modifier.weight(1f))
