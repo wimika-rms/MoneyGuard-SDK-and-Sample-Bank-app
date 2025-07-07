@@ -241,7 +241,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "v0.3.2",
+                    text = "v0.3.5",
                     color = Color.Gray,
                     fontSize = 14.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -414,15 +414,6 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Open an account Link
-//            TextButton(onClick = { /* TODO: Handle Open Account */ }) {
-//                Text(
-//                    "Open an account",
-//                    color = SabiBankColors.TextOnOrange,
-//                    fontSize = 16.sp,
-//                    fontWeight = FontWeight.SemiBold
-//                )
-//            }
             }
 
             // Prelaunch checking overlay
