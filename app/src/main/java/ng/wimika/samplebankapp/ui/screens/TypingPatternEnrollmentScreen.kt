@@ -1,12 +1,17 @@
 package ng.wimika.samplebankapp.ui.screens
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
 import android.util.Log
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -51,6 +56,11 @@ fun TypingPatternScreen(
     val totalSteps = 3
     var userInput by remember { mutableStateOf("") }
     var editText by remember { mutableStateOf<EditText?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var showSuccessBanner by remember { mutableStateOf(false) }
+
+    // This state acts as a trigger to re-run the permission check.
+    var permissionCheckTrigger by remember { mutableStateOf(0) }
 
     // Get user's name and construct the text to type
     val firstName = preferenceManager?.getMoneyguardFirstName()?.takeIf { it.isNotBlank() } ?: "John"
@@ -59,29 +69,45 @@ fun TypingPatternScreen(
         mutableStateOf("hello, my name is $firstName $lastName")
     }
 
-    var showSuccessBanner by remember { mutableStateOf(false) }
-    // CORRECTED: The function is `mutableStateOf`, not `mutableState of`.
-    var isLoading by remember { mutableStateOf(false) }
+    // Launcher for the settings screen. When the user returns, we increment the trigger.
+    val settingsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        Log.d(LOG_TAG, "Returned from overlay settings screen.")
+        // Incrementing this trigger will cause the LaunchedEffect to re-run.
+        permissionCheckTrigger++
+    }
 
+    // This effect now runs when the EditText is created OR when the permission trigger changes.
+    LaunchedEffect(editText, permissionCheckTrigger) {
+        if (editText == null) return@LaunchedEffect
 
-    // Start the typing profile service once the EditText is available.
-    // This is called only once when `editText` state changes from null to a value.
-    LaunchedEffect(editText) {
-        editText?.let {
+        if (Settings.canDrawOverlays(context)) {
+            // PERMISSION GRANTED: Start the service
             try {
                 val typingProfile = sdkService?.getTypingProfile()
                 typingProfile?.startService(context as Activity, intArrayOf(TYPING_PROFILE_INPUT_ID))
-                Log.d(LOG_TAG, "Typing profile service started for EditText with ID: $TYPING_PROFILE_INPUT_ID")
+                Log.d(LOG_TAG, "Overlay permission granted. Typing service started.")
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Failed to start typing profile service", e)
             }
+        } else {
+            // PERMISSION NOT GRANTED: Navigate to settings
+            Log.d(LOG_TAG, "Overlay permission not granted. Requesting user to enable.")
+            Toast.makeText(context, "Overlay permission is required for this feature.", Toast.LENGTH_LONG).show()
+
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${context.packageName}")
+            )
+            settingsLauncher.launch(intent)
         }
     }
 
     // This effect triggers when the final step is completed
     LaunchedEffect(showSuccessBanner) {
         if (showSuccessBanner) {
-            delay(5000L) // Wait for 1 second as requested
+            delay(1000L) // Wait for 1 second as requested
             onRegistrationComplete()
         }
     }
@@ -111,7 +137,6 @@ fun TypingPatternScreen(
                 MultiStepProgressBar(currentStep, totalSteps, Modifier.padding(top = 16.dp, bottom = 32.dp))
                 Text(textToType, fontSize = 22.sp, lineHeight = 30.sp, color = Color.DarkGray, modifier = Modifier.padding(bottom = 24.dp))
 
-                // Using AndroidView to host the legacy EditText required by the SDK
                 AndroidView(
                     factory = { ctx ->
                         EditText(ctx).apply {
@@ -121,28 +146,18 @@ fun TypingPatternScreen(
                             setTextColor(Color.Black.toArgb())
                             setBackgroundColor(Color(0xFFF5F6FA).toArgb())
                             setPadding(40, 40, 40, 40)
-
-                            // Disable auto-complete, predictive text, etc., for accurate capture
                             inputType = InputType.TYPE_CLASS_TEXT or
                                     InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or
                                     InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-
-                            // Listener to update Compose state from the EditText
                             addTextChangedListener(object : TextWatcher {
                                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-                                override fun afterTextChanged(s: Editable?) {
-                                    userInput = s?.toString() ?: ""
-                                }
+                                override fun afterTextChanged(s: Editable?) { userInput = s?.toString() ?: "" }
                             })
-                            // Store the EditText instance to trigger LaunchedEffect
                             editText = this
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .clip(RoundedCornerShape(16.dp)) // Clip to match our UI
+                    modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp))
                 )
 
                 Spacer(Modifier.weight(1f))
@@ -158,15 +173,11 @@ fun TypingPatternScreen(
                                     Toast.makeText(context, "Error: SDK not initialized.", Toast.LENGTH_SHORT).show()
                                     return@launch
                                 }
-
                                 val result = sdkService.getTypingProfile().matchTypingProfile(userInput, token)
                                 Log.d(LOG_TAG, "Step $currentStep result: $result")
-
                                 if (result.success) {
                                     if (currentStep < totalSteps) {
-                                        currentStep++
-                                        userInput = ""
-                                        editText?.setText("") // Clear the EditText view
+                                        currentStep++; userInput = ""; editText?.setText("")
                                     } else {
                                         showSuccessBanner = true
                                     }
@@ -212,20 +223,12 @@ fun TypingPatternScreen(
 @Composable
 private fun MultiStepProgressBar(currentStep: Int, totalSteps: Int, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(8.dp)
-            .clip(RoundedCornerShape(4.dp)),
+        modifier = modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         for (i in 1..totalSteps) {
             val color = if (i <= currentStep) Color(0xFF8854F6) else Color(0xFFE0E0E0)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(color)
-            )
+            Box(modifier = Modifier.weight(1f).fillMaxHeight().background(color))
         }
     }
 }
@@ -233,9 +236,7 @@ private fun MultiStepProgressBar(currentStep: Int, totalSteps: Int, modifier: Mo
 @Composable
 private fun SuccessBanner() {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF8854F6)),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -244,25 +245,11 @@ private fun SuccessBanner() {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Success",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+            Icon(Icons.Default.CheckCircle, "Success", tint = Color.White, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(
-                    text = "Typing Pattern registered",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = "Your Behavioural capture was successful",
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 14.sp
-                )
+                Text("Typing Pattern registered", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Your Behavioural capture was successful", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
             }
         }
     }
