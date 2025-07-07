@@ -239,12 +239,13 @@ fun LoginScreen(
                     contentDescription = "Sabi Bank Logo",
                     modifier = Modifier.size(180.dp)
                 )
-//            Spacer(modifier = Modifier.height(8.dp))
-//            Image(
-//                painter = painterResource(id = R.drawable.logo_text),
-//                contentDescription = "Sabi Bank",
-//                modifier = Modifier.height(30.dp)
-//            )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "v0.3.2",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
 
             // --- Bottom Orange Section (Login Form) ---
@@ -460,7 +461,7 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.BottomCenter
                 ) {
                     BottomSheetModal(
                         title = "Pre-Launch Checks",
@@ -472,7 +473,7 @@ fun LoginScreen(
                                 showRiskModal = false
                             }
                         },
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(16.dp, bottom = 24.dp)
                     )
                 }
             }

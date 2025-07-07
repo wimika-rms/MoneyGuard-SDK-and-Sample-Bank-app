@@ -67,7 +67,7 @@ fun DashboardScreen(
                 RiskScoreCard()
             }
             // Pager indicator from original UI
-            PagerIndicator(pageCount = 4, currentPage = 0)
+          //  PagerIndicator(pageCount = 4, currentPage = 0)
             Spacer(modifier = Modifier.height(24.dp))
             ActionsGrid()
 
