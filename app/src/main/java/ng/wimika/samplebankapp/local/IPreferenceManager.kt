@@ -1,6 +1,9 @@
 package ng.wimika.samplebankapp.local
 
 interface IPreferenceManager {
+    fun setIsFirstLaunchFlag()
+    fun getIsFirstLaunchFlag(): Boolean?
+
     fun saveMoneyGuardToken(token: String?)
     fun getMoneyGuardToken(): String?
 

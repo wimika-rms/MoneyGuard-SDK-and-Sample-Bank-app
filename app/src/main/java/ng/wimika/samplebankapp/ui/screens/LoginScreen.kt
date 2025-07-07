@@ -241,7 +241,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "v0.3.5",
+                    text = "v0.3.6",
                     color = Color.Gray,
                     fontSize = 14.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -416,57 +416,64 @@ fun LoginScreen(
 
             }
 
-            // Prelaunch checking overlay
-            if (isPrelaunchChecking) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = SabiBankColors.OrangePrimary,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Performing security checks...",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
 
-            // Risk modal overlay
-            if (showRiskModal && prelaunchRisks.isNotEmpty() && currentRiskIndex < prelaunchRisks.size) {
-                val currentRisk = prelaunchRisks[currentRiskIndex]
-                val riskMessage = getRiskMessage(currentRisk)
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.BottomCenter
+        }
+    }
+
+    val preferenceManager =
+        MoneyGuardClientApp.preferenceManager
+    if(preferenceManager?.getIsFirstLaunchFlag() == true) {
+        //Prelaunch checking overlay
+        if (isPrelaunchChecking) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    BottomSheetModal(
-                        title = "Pre-Launch Checks",
-                        message = riskMessage,
-                        buttonText = "Continue",
-                        onButtonClick = {
-                            currentRiskIndex++
-                            if (currentRiskIndex >= prelaunchRisks.size) {
-                                showRiskModal = false
-                            }
-                        },
-                        modifier = Modifier.padding(16.dp, bottom = 24.dp)
+                    CircularProgressIndicator(
+                        color = SabiBankColors.OrangePrimary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Performing security checks...",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
+            }
+        }
+
+        //Risk modal overlay
+        if (showRiskModal && prelaunchRisks.isNotEmpty() && currentRiskIndex < prelaunchRisks.size) {
+            val currentRisk = prelaunchRisks[currentRiskIndex]
+            val riskMessage = getRiskMessage(currentRisk)
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                BottomSheetModal(
+                    title = "Pre-Launch Checks",
+                    message = riskMessage,
+                    buttonText = "Continue",
+                    onButtonClick = {
+                        currentRiskIndex++
+                        if (currentRiskIndex >= prelaunchRisks.size) {
+                            showRiskModal = false
+                        }
+                    },
+                    modifier = Modifier.padding(0.dp, bottom = 0.dp)
+                )
             }
         }
     }

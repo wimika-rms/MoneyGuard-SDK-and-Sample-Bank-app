@@ -15,6 +15,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val preferenceManager =
+            MoneyGuardClientApp.preferenceManager
+        preferenceManager?.setIsFirstLaunchFlag();
         setContent {
             MoneyguardSampleBankAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

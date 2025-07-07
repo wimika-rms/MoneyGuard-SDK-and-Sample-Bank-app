@@ -8,6 +8,8 @@ import com.google.gson.Gson
 class PreferenceManager(private val context: Context): IPreferenceManager {
 
     companion object {
+        private const val IS_FIRST_LAUNCH = "is_first_launch"
+
         private const val MONEY_GUARD_TOKEN = "moneyguard_token"
         private const val USER_FIRST_NAME = "user_first_name"
         
@@ -31,6 +33,15 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
     }
     
     private val gson = Gson()
+
+    override fun setIsFirstLaunchFlag(){
+        sharedPreferences.edit { putBoolean(IS_FIRST_LAUNCH, true) }
+    }
+
+    override fun getIsFirstLaunchFlag(): Boolean? {
+        return sharedPreferences.getBoolean(IS_FIRST_LAUNCH, false)
+    }
+
 
     override fun saveMoneyGuardToken(token: String?) {
         sharedPreferences.edit { putString(MONEY_GUARD_TOKEN, token) }
