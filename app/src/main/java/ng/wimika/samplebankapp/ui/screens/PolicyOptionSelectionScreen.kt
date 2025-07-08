@@ -37,24 +37,25 @@ fun PolicyOptionSelectionScreen(
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
     val token = preferenceManager?.getMoneyGuardToken()
-    val currentPreferences = preferenceManager?.getMoneyGuardSetupPreferences()
-    val coverageLimitId = currentPreferences?.coverageLimitId?.toIntOrNull()
+    val flowState = MoneyGuardClientApp.accountProtectionFlowState
+    val coverageLimitId = flowState?.selectedCoverageLimit?.id
     
-    var policyOptions by remember { mutableStateOf<List<PolicyOption>>(emptyList()) }
-    var selectedOption by remember { mutableStateOf<PolicyOption?>(null) }
-    var autoRenew by remember { mutableStateOf(true) }
-    var isLoading by remember { mutableStateOf(true) }
+    var policyOptions by remember { mutableStateOf(flowState?.allPolicyOptions ?: emptyList()) }
+    var selectedOption by remember { mutableStateOf(flowState?.selectedPolicyOption) }
+    var autoRenew by remember { mutableStateOf(flowState?.autoRenew ?: false) }
+    var isLoading by remember { mutableStateOf(flowState?.allPolicyOptions?.isEmpty() != false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // Load policy options when screen is first loaded
+    // Load policy options when screen is first loaded (only if not already loaded)
     LaunchedEffect(Unit) {
-        if (sdkService != null && !token.isNullOrEmpty() && coverageLimitId != null) {
+        if (flowState?.allPolicyOptions?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty() && coverageLimitId != null) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
                 val result = moneyGuardPolicy.getPolicyOptions(token, coverageLimitId)
                 result.fold(
                     onSuccess = { response ->
                         policyOptions = response.policyOptions
+                        flowState?.setAllPolicyOptions(response.policyOptions)
                         isLoading = false
                     },
                     onFailure = { exception ->
@@ -76,6 +77,10 @@ fun PolicyOptionSelectionScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
+        } else if (flowState?.allPolicyOptions?.isEmpty() == false) {
+            // Already have policy options loaded, just update local state
+            policyOptions = flowState.allPolicyOptions
+            isLoading = false
         } else {
             Toast.makeText(
                 context,
@@ -159,7 +164,10 @@ fun PolicyOptionSelectionScreen(
                         ) {
                             RadioButton(
                                 selected = selectedOption?.id == option.id,
-                                onClick = { selectedOption = option },
+                                onClick = { 
+                                    selectedOption = option
+                                    flowState?.setSelectedPolicyOption(option)
+                                },
                                 colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
                             )
                             Column(
@@ -220,7 +228,10 @@ fun PolicyOptionSelectionScreen(
                         }
                         Switch(
                             checked = autoRenew,
-                            onCheckedChange = { autoRenew = it },
+                            onCheckedChange = { 
+                                autoRenew = it
+                                flowState?.setAutoRenew(it)
+                            },
                             colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF8854F6))
                         )
                     }
@@ -228,17 +239,8 @@ fun PolicyOptionSelectionScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { 
-                        selectedOption?.let { option ->
-                            val currentPrefs = preferenceManager?.getMoneyGuardSetupPreferences() 
-                                ?: MoneyGuardSetupPreferences()
-                            val updatedPreferences = currentPrefs.copy(
-                                policyOptionId = option.id.toString(),
-                                subscriptionPlan = "${CurrencyFormatter.format(option.priceAndTerm.price)}/${option.priceAndTerm.term}",
-                                autoRenew = autoRenew
-                            )
-                            preferenceManager?.saveMoneyGuardSetupPreferences(updatedPreferences)
-                            onContinue()
-                        }
+                        // Selection is already saved to flow state on each change
+                        onContinue()
                     },
                     modifier = Modifier
                         .fillMaxWidth()

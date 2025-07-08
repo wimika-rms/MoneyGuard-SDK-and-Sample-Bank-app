@@ -39,21 +39,23 @@ fun CoverageLimitSelectionScreen(
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
     val token = preferenceManager?.getMoneyGuardToken()
+    val flowState = MoneyGuardClientApp.accountProtectionFlowState
     
-    var coverageLimits by remember { mutableStateOf<List<CoverageLimit>>(emptyList()) }
-    var selectedLimitId by remember { mutableStateOf<Int?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    var coverageLimits by remember { mutableStateOf(flowState?.allCoverageLimits ?: emptyList()) }
+    var selectedLimitId by remember { mutableStateOf(flowState?.selectedCoverageLimit?.id) }
+    var isLoading by remember { mutableStateOf(flowState?.allCoverageLimits?.isEmpty() != false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // Load coverage limits when screen is first loaded
+    // Load coverage limits when screen is first loaded (only if not already loaded)
     LaunchedEffect(Unit) {
-        if (sdkService != null && !token.isNullOrEmpty()) {
+        if (flowState?.allCoverageLimits?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty()) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
                 val result = moneyGuardPolicy.getCoverageLimits(token)
                 result.fold(
                     onSuccess = { response ->
                         coverageLimits = response.coverageLimits
+                        flowState?.setAllCoverageLimits(response.coverageLimits)
                         isLoading = false
                     },
                     onFailure = { exception ->
@@ -75,6 +77,10 @@ fun CoverageLimitSelectionScreen(
                     Toast.LENGTH_SHORT
                 ).show()
             }
+        } else if (flowState?.allCoverageLimits?.isEmpty() == false) {
+            // Already have coverage limits loaded, just update local state
+            coverageLimits = flowState.allCoverageLimits
+            isLoading = false
         } else {
             Toast.makeText(
                 context,
@@ -158,7 +164,11 @@ fun CoverageLimitSelectionScreen(
                         ) {
                             RadioButton(
                                 selected = selectedLimitId == limit.id,
-                                onClick = { selectedLimitId = limit.id },
+                                onClick = { 
+                                    selectedLimitId = limit.id 
+                                    flowState?.setSelectedCoverageLimit(limit)
+                                    flowState?.setAmountToCover(CurrencyFormatter.format(limit.limit))
+                                },
                                 colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
                             )
                             Text(
@@ -201,17 +211,8 @@ fun CoverageLimitSelectionScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { 
-                        selectedLimitId?.let { limitId ->
-                            val selectedLimit = coverageLimits.find { it.id == limitId }
-                            val currentPreferences = preferenceManager?.getMoneyGuardSetupPreferences() 
-                                ?: MoneyGuardSetupPreferences()
-                            val updatedPreferences = currentPreferences.copy(
-                                coverageLimitId = limitId.toString(),
-                                amountToCover = selectedLimit?.let { CurrencyFormatter.format(it.limit) } ?: ""
-                            )
-                            preferenceManager?.saveMoneyGuardSetupPreferences(updatedPreferences)
-                            onContinue()
-                        }
+                        // Selection is already saved to flow state on each change
+                        onContinue()
                     },
                     modifier = Modifier
                         .fillMaxWidth()

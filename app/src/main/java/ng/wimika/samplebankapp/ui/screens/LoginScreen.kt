@@ -219,82 +219,83 @@ fun LoginScreen(
         }
     }
 
-    // --- The UI is structured into two main parts ---
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(SabiBankColors.White)
-        ) {
-            // --- Top White Section (Logo) ---
+    Scaffold { paddingValues ->
+        // --- The UI is structured into two main parts ---
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.35f), // Takes ~35% of the screen height
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxSize()
+                    .background(SabiBankColors.White)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_graphic),
-                    contentDescription = "Sabi Bank Logo",
-                    modifier = Modifier.size(180.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "v0.3.6",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            }
-
-            // --- Bottom Orange Section (Login Form) ---
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.65f) // Takes ~65% of the screen height
-                    .background(
-                        color = SabiBankColors.OrangePrimary,
-                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                // --- Top White Section (Logo) ---
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.35f), // Takes ~35% of the screen height
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_graphic),
+                        contentDescription = "Sabi Bank Logo",
+                        modifier = Modifier.size(180.dp)
                     )
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Enter your login credentials",
-                    color = SabiBankColors.TextOnOrange,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Username Field
-                SabiTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    placeholder = "Username",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "v0.3.6",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // --- Bottom Orange Section (Login Form) ---
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.65f) // Takes ~65% of the screen height
+                        .background(
+                            color = SabiBankColors.OrangePrimary,
+                            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                        )
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Enter your login credentials",
+                        color = SabiBankColors.TextOnOrange,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
 
-                // Password Field
-                SabiTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    placeholder = "Password",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    visualTransformation = PasswordVisualTransformation()
-                )
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // Forgot Password Link
+                    // Username Field
+                    SabiTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        placeholder = "Username",
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Password Field
+                    SabiTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        placeholder = "Password",
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        visualTransformation = PasswordVisualTransformation()
+                    )
+
+                    // Forgot Password Link
 //            TextButton(
 //                onClick = { /* TODO: Handle Forgot Password */ },
 //                modifier = Modifier.align(Alignment.End)
@@ -306,120 +307,123 @@ fun LoginScreen(
 //                )
 //            }
 
-                if (showError) {
-                    Text(
-                        text = "Login failed. Please check your credentials.",
-                        color = SabiBankColors.TextOnOrange,
-                        modifier = Modifier
-                            .padding(bottom = 8.dp)
-                            .background(
-                                Color.Red.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                    if (showError) {
+                        Text(
+                            text = "Login failed. Please check your credentials.",
+                            color = SabiBankColors.TextOnOrange,
+                            modifier = Modifier
+                                .padding(bottom = 8.dp)
+                                .background(
+                                    Color.Red.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
 
-                Spacer(modifier = Modifier.weight(1f)) // Pushes content to top and bottom
+                    Spacer(modifier = Modifier.weight(1f)) // Pushes content to top and bottom
 
-                // Login Button
-                Button(
-                    onClick = {
-                        if (username.isNotBlank() && password.isNotBlank()) {
-                            scope.launch {
-                                isLoading = true
-                                showError = false
+                    // Login Button
+                    Button(
+                        onClick = {
+                            if (username.isNotBlank() && password.isNotBlank()) {
+                                scope.launch {
+                                    isLoading = true
+                                    showError = false
 
-                                try {
-                                    loginRepository.login(username.trim(), password)
-                                        .collect { response ->
-                                            val sessionData = response.data
-                                            if (sessionData != null && sessionData.sessionId.isNotEmpty()) {
-                                                val preferenceManager =
-                                                    MoneyGuardClientApp.preferenceManager
-                                                preferenceManager?.saveBankLoginDetails(
-                                                    sessionData.sessionId,
-                                                    sessionData.userFullName
-                                                )
-                                                registerWithMoneyguard(
-                                                    sessionData.sessionId,
-                                                    preferenceManager,
-                                                    {
-                                                        val sdkService = MoneyGuardClientApp.sdkService
-                                                        val token = preferenceManager?.getMoneyGuardToken()
-                                                        if (sdkService != null && !token.isNullOrEmpty()) {
-                                                            scope.launch {
-                                                                val status = sdkService.utility()?.checkMoneyguardStatus(token)
-                                                                if (status == ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus.Active) {
-                                                                    val credential = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential(
-                                                                        username = username.trim(),
-                                                                        passwordStartingCharactersHash = password.takeLast(3),
-                                                                        domain = "wimika.ng",
-                                                                        hashAlgorithm = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm.SHA256
-                                                                    )
-                                                                    sdkService.authentication()?.credentialCheck(token, credential) { result ->
-                                                                        if (result is ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult.Success) {
-                                                                            val status = result.data.status
-                                                                            credentialDialogStatus = "Credential Check - $status"
-                                                                            showCredentialDialog = true
-                                                                        } else {
-                                                                            credentialDialogStatus = "Credential Check - RISK_STATUS_UNKNOWN"
-                                                                            showCredentialDialog = true
+                                    try {
+                                        loginRepository.login(username.trim(), password)
+                                            .collect { response ->
+                                                val sessionData = response.data
+                                                if (sessionData != null && sessionData.sessionId.isNotEmpty()) {
+                                                    val preferenceManager =
+                                                        MoneyGuardClientApp.preferenceManager
+                                                    preferenceManager?.saveBankLoginDetails(
+                                                        sessionData.sessionId,
+                                                        sessionData.userFullName
+                                                    )
+                                                    registerWithMoneyguard(
+                                                        sessionData.sessionId,
+                                                        preferenceManager,
+                                                        {
+                                                            val sdkService = MoneyGuardClientApp.sdkService
+                                                            val token = preferenceManager?.getMoneyGuardToken()
+                                                            if (sdkService != null && !token.isNullOrEmpty()) {
+                                                                scope.launch {
+                                                                    val status = sdkService.utility()?.checkMoneyguardStatus(token)
+                                                                    if (status == ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus.Active) {
+                                                                        val credential = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential(
+                                                                            username = username.trim(),
+                                                                            passwordStartingCharactersHash = password.takeLast(3),
+                                                                            domain = "wimika.ng",
+                                                                            hashAlgorithm = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm.SHA256
+                                                                        )
+                                                                        sdkService.authentication()?.credentialCheck(token, credential) { result ->
+                                                                            if (result is ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult.Success) {
+                                                                                val status = result.data.status
+                                                                                credentialDialogStatus = "Credential Check - $status"
+                                                                                showCredentialDialog = true
+                                                                            } else {
+                                                                                credentialDialogStatus = "Credential Check - RISK_STATUS_UNKNOWN"
+                                                                                showCredentialDialog = true
+                                                                            }
                                                                         }
+                                                                    } else {
+                                                                        onLoginSuccess()
                                                                     }
-                                                                } else {
-                                                                    onLoginSuccess()
                                                                 }
+                                                            } else {
+                                                                onLoginSuccess()
                                                             }
-                                                        } else {
-                                                            onLoginSuccess()
                                                         }
-                                                    }
-                                                )
-                                            } else {
-                                                showError = true
+                                                    )
+                                                } else {
+                                                    showError = true
+                                                }
                                             }
-                                        }
-                                } catch (e: Exception) {
-                                    showError = true
-                                } finally {
-                                    isLoading = false
+                                    } catch (e: Exception) {
+                                        showError = true
+                                    } finally {
+                                        isLoading = false
+                                    }
                                 }
                             }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(50), // Pill shape
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SabiBankColors.White,
+                            contentColor = SabiBankColors.TextPrimaryOrange,
+                            disabledContainerColor = SabiBankColors.White.copy(alpha = 0.5f)
+                        ),
+                        enabled = !isLoading && username.isNotBlank() && password.isNotBlank()
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(28.dp),
+                                color = SabiBankColors.TextPrimaryOrange,
+                                strokeWidth = 3.dp
+                            )
+                        } else {
+                            Text("Login", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(50), // Pill shape
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SabiBankColors.White,
-                        contentColor = SabiBankColors.TextPrimaryOrange,
-                        disabledContainerColor = SabiBankColors.White.copy(alpha = 0.5f)
-                    ),
-                    enabled = !isLoading && username.isNotBlank() && password.isNotBlank()
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(28.dp),
-                            color = SabiBankColors.TextPrimaryOrange,
-                            strokeWidth = 3.dp
-                        )
-                    } else {
-                        Text("Login", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+
 
             }
-
-
-
         }
     }
+
+
 
     val preferenceManager =
         MoneyGuardClientApp.preferenceManager

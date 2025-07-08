@@ -32,7 +32,7 @@ fun CheckoutScreen(
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
     val token = preferenceManager?.getMoneyGuardToken()
-    val prefs = preferenceManager?.getMoneyGuardSetupPreferences() ?: MoneyGuardSetupPreferences()
+    val flowState = MoneyGuardClientApp.accountProtectionFlowState
     val coroutineScope = rememberCoroutineScope()
 
     var isLoading by remember { mutableStateOf(false) }
@@ -43,20 +43,21 @@ fun CheckoutScreen(
 
     // Account selection state
     var expanded by remember { mutableStateOf(false) }
-    var selectedAccount by remember { mutableStateOf<BankAccount?>(null) }
-    var accounts by remember { mutableStateOf<List<BankAccount>>(emptyList()) }
-    var accountsLoading by remember { mutableStateOf(true) }
+    var selectedAccount by remember { mutableStateOf(flowState?.selectedDebitAccount) }
+    var accounts by remember { mutableStateOf(flowState?.allAccounts ?: emptyList()) }
+    var accountsLoading by remember { mutableStateOf(flowState?.allAccounts?.isEmpty() != false) }
     var accountsError by remember { mutableStateOf<String?>(null) }
 
-    // Fetch accounts from SDK
+    // Fetch accounts from SDK (only if not already loaded)
     LaunchedEffect(Unit) {
-        if (sdkService != null && !token.isNullOrEmpty()) {
+        if (flowState?.allAccounts?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty()) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
                 val result = moneyGuardPolicy.getUserAccounts(token, partnerBankId = 101)
                 result.fold(
                     onSuccess = { response ->
                         accounts = response.bankAccounts
+                        flowState?.setAllAccounts(response.bankAccounts)
                         accountsLoading = false
                     },
                     onFailure = { exception ->
@@ -68,6 +69,10 @@ fun CheckoutScreen(
                 accountsError = e.message
                 accountsLoading = false
             }
+        } else if (flowState?.allAccounts?.isEmpty() == false) {
+            // Already have accounts loaded, just update local state
+            accounts = flowState.allAccounts
+            accountsLoading = false
         } else {
             accountsError = "Please login to view accounts"
             accountsLoading = false
@@ -133,7 +138,7 @@ fun CheckoutScreen(
                             color = Color(0xFF6B6B6B)
                         )
                         Text(
-                            text = prefs.subscriptionPlan,
+                            text = flowState?.getSubscriptionPlanDisplay() ?: "",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
                             color = Color(0xFF8854F6)
                         )
@@ -211,6 +216,7 @@ fun CheckoutScreen(
                                             text = { Text("${account.bank} - ${account.number} (${account.type})") },
                                             onClick = {
                                                 selectedAccount = account
+                                                flowState?.setSelectedDebitAccount(account)
                                                 expanded = false
                                             }
                                         )
@@ -235,10 +241,10 @@ fun CheckoutScreen(
                                 val policy = sdkService?.policy()
                                 val result = policy?.createPolicy(
                                     token = token ?: "",
-                                    policyOptionId = prefs.policyOptionId,
-                                    coveredAccountIds = prefs.accountIds,
+                                    policyOptionId = flowState?.selectedPolicyOption?.id?.toString() ?: "",
+                                    coveredAccountIds = flowState?.selectedAccountIds?.toList() ?: emptyList(),
                                     debitAccountId = selectedAccount?.id.toString(),
-                                    autoRenew = prefs.autoRenew
+                                    autoRenew = flowState?.autoRenew ?: true
                                 )
                                 result?.fold(
                                     onSuccess = {
