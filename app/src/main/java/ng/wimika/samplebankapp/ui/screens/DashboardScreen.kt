@@ -3,8 +3,10 @@ package ng.wimika.samplebankapp.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -46,55 +48,58 @@ fun DashboardScreen(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF5F6FA) // Light grey background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
+    Scaffold { paddingValues ->
+        Surface(
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            color = Color(0xFFF5F6FA) // Light grey background
         ) {
-            DashboardHeader(
-                userName = userFullName,
-                //isProtected = moneyguardStatus == MoneyGuardAppStatus.Active,
-                moneyguardStatus,
-                onProtectAccount = onProtectAccount,
-                onDownloadMoneyGuard = onDownloadMoneyGuard
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            AccountCard()
-            // Risk Score Card - only show when MoneyGuard is Active
-            if (moneyguardStatus == MoneyGuardAppStatus.Active) {
-                RiskScoreCard()
-            }
-            // Pager indicator from original UI
-          //  PagerIndicator(pageCount = 4, currentPage = 0)
-            Spacer(modifier = Modifier.height(24.dp))
-            ActionsGrid(onCheckDebitClick = onCheckDebitClick, onEnrollTypingPattern = onEnrollTypingPattern)
-
-            // Spacer to push the logout button to the bottom
-            Spacer(Modifier.weight(1f))
-
-            // Logout Button
-            OutlinedButton(
-                onClick = {
-                    // Clear all preferences before logging out
-                    preferenceManager?.clear()
-                    onLogout()
-                },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp) // Add padding at the bottom of the screen
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color(0xFFF97316))
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Text(
-                    text = "Logout",
-                    color = Color(0xFFF97316),
-                    fontWeight = FontWeight.Bold
+                DashboardHeader(
+                    userName = userFullName,
+                    //isProtected = moneyguardStatus == MoneyGuardAppStatus.Active,
+                    moneyguardStatus,
+                    onProtectAccount = onProtectAccount,
+                    onDownloadMoneyGuard = onDownloadMoneyGuard
                 )
+                Spacer(modifier = Modifier.height(24.dp))
+                AccountCard()
+                // Risk Score Card - only show when MoneyGuard is Active
+                if (moneyguardStatus == MoneyGuardAppStatus.Active) {
+                    RiskScoreCard()
+                }
+                // Pager indicator from original UI
+                //  PagerIndicator(pageCount = 4, currentPage = 0)
+                Spacer(modifier = Modifier.height(24.dp))
+                ActionsGrid(onCheckDebitClick = onCheckDebitClick, onEnrollTypingPattern = onEnrollTypingPattern)
+
+                // Spacer to push the logout button to the bottom
+                Spacer(Modifier.weight(1f))
+
+                // Logout Button
+                OutlinedButton(
+                    onClick = {
+                        // Clear all preferences before logging out
+                        preferenceManager?.clear()
+                        onLogout()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp) // Add padding at the bottom of the screen
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFF97316))
+                ) {
+                    Text(
+                        text = "Logout",
+                        color = Color(0xFFF97316),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
@@ -104,8 +109,7 @@ fun DashboardScreen(
 private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardAppStatus?, onProtectAccount: () -> Unit, onDownloadMoneyGuard: () -> Unit) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 48.dp), // Padding from the top of the screen
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -123,6 +127,8 @@ private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardApp
                 else if(moneyGuardAppStatus == MoneyGuardAppStatus.NoPolicyAppInstalled
                     || moneyGuardAppStatus == MoneyGuardAppStatus.InActive)
                 {
+                    // Clear the flow state when starting account protection
+                    MoneyGuardClientApp.accountProtectionFlowState?.clearState()
                     onProtectAccount()
                 }
                 else if(moneyGuardAppStatus == MoneyGuardAppStatus.Active)

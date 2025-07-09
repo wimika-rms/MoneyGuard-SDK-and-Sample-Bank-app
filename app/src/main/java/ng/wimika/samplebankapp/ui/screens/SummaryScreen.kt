@@ -30,7 +30,7 @@ fun SummaryScreen(
     onCheckout: () -> Unit
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
-    val preferences = preferenceManager?.getMoneyGuardSetupPreferences() ?: MoneyGuardSetupPreferences()
+    val flowState = MoneyGuardClientApp.accountProtectionFlowState
 
     Scaffold(
         topBar = {
@@ -86,7 +86,8 @@ fun SummaryScreen(
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
             ) {
-                preferences.accountIds.forEach { accountId ->
+                flowState?.selectedAccountIds?.forEach { accountId ->
+                    val account = flowState.allAccounts.find { it.id.toString() == accountId }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -100,7 +101,7 @@ fun SummaryScreen(
                             .padding(12.dp)
                     ) {
                         Text(
-                            text = accountId,
+                            text = account?.let { "${it.type} - ${it.number}" } ?: accountId,
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                             color = Color.Black
                         )
@@ -126,7 +127,7 @@ fun SummaryScreen(
                     .padding(12.dp)
             ) {
                 Text(
-                    text = preferences.amountToCover.ifEmpty { "Not selected" },
+                    text = flowState?.amountToCover?.ifEmpty { "Not selected" } ?: "Not selected",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                     color = Color.Black
                 )
@@ -150,7 +151,7 @@ fun SummaryScreen(
                     .padding(12.dp)
             ) {
                 Text(
-                    text = preferences.subscriptionPlan.ifEmpty { "Not selected" },
+                    text = flowState?.getSubscriptionPlanDisplay()?.ifEmpty { "Not selected" } ?: "Not selected",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                     color = Color.Black
                 )
