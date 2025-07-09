@@ -164,9 +164,19 @@ fun TypingPatternScreen(
 
                 Button(
                     onClick = {
+                        if (userInput.trim() != textToType.trim()) {
+                            Toast.makeText(
+                                context,
+                                "Please type the text exactly as shown to continue.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            return@Button // Stop further execution if text doesn't match
+                        }
+
                         scope.launch {
                             isLoading = true
                             try {
+
                                 val token = preferenceManager?.getMoneyGuardToken()
                                 if (sdkService == null || token.isNullOrEmpty()) {
                                     Log.e(LOG_TAG, "SDK service or token is not available.")
@@ -175,6 +185,7 @@ fun TypingPatternScreen(
                                 }
                                 val result = sdkService.getTypingProfile().matchTypingProfile(userInput, token)
                                 Log.d(LOG_TAG, "Step $currentStep result: $result")
+
                                 if (result.success) {
                                     if (currentStep < totalSteps) {
                                         currentStep++; userInput = ""; editText?.setText(""); sdkService.getTypingProfile().resetService()
@@ -191,101 +202,31 @@ fun TypingPatternScreen(
                             } finally {
                                 isLoading = false
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-                    )
-                },
-                containerColor = Color.White
-            ) { paddingValues ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 24.dp)
-                        .imePadding()
-                ) {
-                    MultiStepProgressBar(currentStep, totalSteps, Modifier.padding(top = 16.dp, bottom = 32.dp))
-                    Text(textToType, fontSize = 22.sp, lineHeight = 30.sp, color = Color.DarkGray, modifier = Modifier.padding(bottom = 24.dp))
-
-                    AndroidView(
-                        factory = { ctx ->
-                            EditText(ctx).apply {
-                                id = TYPING_PROFILE_INPUT_ID
-                                hint = "Type here"
-                                setHintTextColor(Color.Gray.toArgb())
-                                setTextColor(Color.Black.toArgb())
-                                setBackgroundColor(Color(0xFFF5F6FA).toArgb())
-                                setPadding(40, 40, 40, 40)
-                                inputType = InputType.TYPE_CLASS_TEXT or
-                                        InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or
-                                        InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-                                addTextChangedListener(object : TextWatcher {
-                                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-                                    override fun afterTextChanged(s: Editable?) { userInput = s?.toString() ?: "" }
-                                })
-                                editText = this
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp))
-                    )
-
-                    Spacer(Modifier.weight(1f))
-
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                isLoading = true
-                                try {
-                                    val token = preferenceManager?.getMoneyGuardToken()
-                                    if (sdkService == null || token.isNullOrEmpty()) {
-                                        Log.e(LOG_TAG, "SDK service or token is not available.")
-                                        Toast.makeText(context, "Error: SDK not initialized.", Toast.LENGTH_SHORT).show()
-                                        return@launch
-                                    }
-                                    val result = sdkService.getTypingProfile().matchTypingProfile(userInput, token)
-                                    Log.d(LOG_TAG, "Step $currentStep result: $result")
-                                    if (result.success) {
-                                        if (currentStep < totalSteps) {
-                                            currentStep++; userInput = ""; editText?.setText("")
-                                        } else {
-                                            showSuccessBanner = true
-                                        }
-                                    } else {
-                                        Toast.makeText(context, "Match failed: ${result.message}", Toast.LENGTH_LONG).show()
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(LOG_TAG, "An error occurred during typing match", e)
-                                    Toast.makeText(context, "An error occurred: ${e.message}", Toast.LENGTH_LONG).show()
-                                } finally {
-                                    isLoading = false
-                                }
-                            }
-                        },
-                        enabled = userInput.isNotBlank() && !isLoading && !showSuccessBanner,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF8854F6),
-                            disabledContainerColor = Color(0xFFE0E0E0)
-                        )
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
-                        } else {
-                            Text("Submit", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                         }
+                    },
+                    enabled = userInput.isNotBlank() && !isLoading && !showSuccessBanner,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF8854F6),
+                        disabledContainerColor = Color(0xFFE0E0E0)
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Submit", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    Spacer(modifier = Modifier.height(48.dp))
                 }
+                Spacer(modifier = Modifier.height(48.dp))
             }
-            AnimatedVisibility(
-                visible = showSuccessBanner,
-                enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 16.dp)
-            ) {
-                SuccessBanner()
-            }
+        }
+        AnimatedVisibility(
+            visible = showSuccessBanner,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 16.dp)
+        ) {
+            SuccessBanner()
         }
     }
 }

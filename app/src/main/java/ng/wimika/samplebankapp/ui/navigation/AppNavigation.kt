@@ -13,6 +13,7 @@ import ng.wimika.samplebankapp.ui.screens.CheckoutScreen
 import ng.wimika.samplebankapp.ui.screens.DownloadMoneyGuardScreen
 import ng.wimika.samplebankapp.ui.screens.EnrollmentIntroScreen
 import ng.wimika.samplebankapp.ui.screens.TypingPatternScreen
+import ng.wimika.samplebankapp.ui.screens.TypingPatternVerificationScreen
 
 sealed class Screen {
     object Login : Screen()
@@ -27,6 +28,7 @@ sealed class Screen {
     object CheckDebitTransaction : Screen()
     object EnrollmentIntro : Screen()
     object TypingPatternEnrollment : Screen()
+    object TypingPatternVerification : Screen()
 }
 
 @Composable
@@ -66,7 +68,16 @@ fun AppNavigation() {
                 },
                 onEnrollTypingPattern = {
                     currentScreen = Screen.EnrollmentIntro
+                },
+                onVerifyTypingPattern = {
+                    currentScreen = Screen.TypingPatternVerification
                 }
+            )
+        }
+        Screen.TypingPatternVerification -> {
+            TypingPatternVerificationScreen(
+                onVerificationSuccess = { currentScreen = Screen.Dashboard },
+                onClose = { currentScreen = Screen.Dashboard }
             )
         }
         Screen.OnboardingInfo -> {

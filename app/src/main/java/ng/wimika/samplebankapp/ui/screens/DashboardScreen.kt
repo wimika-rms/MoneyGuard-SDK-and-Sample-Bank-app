@@ -31,7 +31,8 @@ fun DashboardScreen(
     onProtectAccount: () -> Unit,
     onDownloadMoneyGuard: () -> Unit,
     onCheckDebitClick: () -> Unit = {},
-    onEnrollTypingPattern: () -> Unit = {}
+    onEnrollTypingPattern: () -> Unit = {},
+    onVerifyTypingPattern: () -> Unit = {}
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
@@ -69,13 +70,17 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 AccountCard()
                 // Risk Score Card - only show when MoneyGuard is Active
+                moneyguardStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled
                 if (moneyguardStatus == MoneyGuardAppStatus.Active) {
                     RiskScoreCard()
                 }
                 // Pager indicator from original UI
                 //  PagerIndicator(pageCount = 4, currentPage = 0)
                 Spacer(modifier = Modifier.height(24.dp))
-                ActionsGrid(onCheckDebitClick = onCheckDebitClick, onEnrollTypingPattern = onEnrollTypingPattern)
+                ActionsGrid(onCheckDebitClick = onCheckDebitClick,
+                    onEnrollTypingPattern = onEnrollTypingPattern,
+                    onVerifyTypingPattern = onVerifyTypingPattern,
+                    moneyguardStatus = moneyguardStatus)
 
                 // Spacer to push the logout button to the bottom
                 Spacer(Modifier.weight(1f))
@@ -245,25 +250,47 @@ private fun PagerIndicator(pageCount: Int, currentPage: Int) {
 }
 
 @Composable
-private fun ActionsGrid(onCheckDebitClick: () -> Unit = {}, onEnrollTypingPattern: () -> Unit = {}) {
+private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
+                        onEnrollTypingPattern: () -> Unit = {},
+                        onVerifyTypingPattern: () -> Unit = {},
+                        moneyguardStatus: MoneyGuardAppStatus?) {
+    val showTypingPatternActions = moneyguardStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled ||
+            moneyguardStatus == MoneyGuardAppStatus.Active
+
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Fixed icons to use core material library
-            ActionCard(icon = Icons.Default.ReceiptLong, text = "Account\nStatement", modifier = Modifier.weight(1f))
-            ActionCard(icon = Icons.Default.StarBorder, text = "Make\nTransfer", modifier = Modifier.weight(1f), onClick = onCheckDebitClick)
-            ActionCard(icon = Icons.Default.Refresh, text = "Recent\nTransfers", modifier = Modifier.weight(1f))
+
+            ActionCard(icon = Icons.Default.StarBorder, text = "Make\nTransfer",
+                modifier = Modifier.weight(1f), onClick = onCheckDebitClick)
+
+            // Conditionally show the "Enroll" button
+            if (showTypingPatternActions) {
+                ActionCard(
+                    icon = Icons.Default.Security,
+                    text = "Enroll\nTyping Pattern",
+                    modifier = Modifier.weight(1f),
+                    onClick = onEnrollTypingPattern
+                )
+            } else {
+                // Add an empty placeholder to maintain grid alignment
+                Box(modifier = Modifier.weight(1f))
+            }
+
+            // Conditionally show the "Verify" button
+            if (showTypingPatternActions) {
+                ActionCard(
+                    icon = Icons.Default.Fingerprint,
+                    text = "Verify\nTyping Pattern",
+                    modifier = Modifier.weight(1f),
+                    onClick = onVerifyTypingPattern
+                )
+            } else {
+                // Add an empty placeholder to maintain grid alignment
+                Box(modifier = Modifier.weight(1f))
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ActionCard(
-                icon = Icons.Default.Security, 
-                text = "Enroll\nTyping Pattern", 
-                modifier = Modifier.weight(1f),
-                onClick = onEnrollTypingPattern
-            )
-            // Add empty spaces to maintain grid layout
-            Box(modifier = Modifier.weight(1f))
-            Box(modifier = Modifier.weight(1f))
-        }
+
     }
 }
 
