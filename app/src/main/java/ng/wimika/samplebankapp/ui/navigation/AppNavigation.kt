@@ -16,19 +16,20 @@ import ng.wimika.samplebankapp.ui.screens.TypingPatternScreen
 import ng.wimika.samplebankapp.ui.screens.TypingPatternVerificationScreen
 
 sealed class Screen {
-    object Login : Screen()
-    object Dashboard : Screen()
-    object OnboardingInfo : Screen()
-    object AccountSelection : Screen()
-    object CoverageLimitSelection : Screen()
-    object PolicyOptionSelection : Screen()
-    object Summary : Screen()
-    object Checkout : Screen()
-    object DownloadMoneyGuard : Screen()
-    object CheckDebitTransaction : Screen()
-    object EnrollmentIntro : Screen()
-    object TypingPatternEnrollment : Screen()
-    object TypingPatternVerification : Screen()
+    data object Login : Screen()
+    data object Dashboard : Screen()
+    data object OnboardingInfo : Screen()
+    data object AccountSelection : Screen()
+    data object CoverageLimitSelection : Screen()
+    data object PolicyOptionSelection : Screen()
+    data object Summary : Screen()
+    data object Checkout : Screen()
+    data object DownloadMoneyGuard : Screen()
+    data object CheckDebitTransaction : Screen()
+    data object EnrollmentIntro : Screen()
+    data object TypingPatternEnrollment : Screen()
+    // Modified to carry a callback
+    data class TypingPatternVerification(val onResult: (Boolean) -> Unit) : Screen()
 }
 
 @Composable
@@ -39,16 +40,30 @@ fun AppNavigation() {
     LaunchedEffect(Unit) {
         val preferenceManager = ng.wimika.samplebankapp.MoneyGuardClientApp.preferenceManager
         val sessionId = preferenceManager?.getBankSessionId()
+        // Clear suspicious login flag on app start
+        preferenceManager?.saveSuspiciousLoginStatus(false)
         if (!sessionId.isNullOrBlank()) {
             currentScreen = Screen.Dashboard
         }
     }
 
-    when (currentScreen) {
+    when (val screen = currentScreen) { // Use 'screen' for smart casting
         Screen.Login -> {
             LoginScreen(
                 onLoginSuccess = {
                     currentScreen = Screen.Dashboard
+                },
+                // New navigation action for verification
+                onNavigateToVerification = {
+                    currentScreen = Screen.TypingPatternVerification(onResult = { isSuccess ->
+                        if (isSuccess) {
+                            // On successful verification, proceed to dashboard
+                            currentScreen = Screen.Dashboard
+                        } else {
+                            // On failure, return to the login screen
+                            currentScreen = Screen.Login
+                        }
+                    })
                 }
             )
         }
@@ -70,14 +85,18 @@ fun AppNavigation() {
                     currentScreen = Screen.EnrollmentIntro
                 },
                 onVerifyTypingPattern = {
-                    currentScreen = Screen.TypingPatternVerification
+                    // Updated to use the new verification screen signature
+                    currentScreen = Screen.TypingPatternVerification(onResult = {
+                        // Simply return to dashboard regardless of result from here
+                        currentScreen = Screen.Dashboard
+                    })
                 }
             )
         }
-        Screen.TypingPatternVerification -> {
+        // Updated to handle the data class
+        is Screen.TypingPatternVerification -> {
             TypingPatternVerificationScreen(
-                onVerificationSuccess = { currentScreen = Screen.Dashboard },
-                onClose = { currentScreen = Screen.Dashboard }
+                onVerificationResult = screen.onResult
             )
         }
         Screen.OnboardingInfo -> {

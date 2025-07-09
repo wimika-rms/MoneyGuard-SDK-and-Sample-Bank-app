@@ -44,8 +44,7 @@ private const val VERIFY_TYPING_INPUT_ID = 1002 // Use a different ID to avoid c
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TypingPatternVerificationScreen(
-    onVerificationSuccess: () -> Unit,
-    onClose: () -> Unit
+    onVerificationResult: (isSuccess: Boolean) -> Unit
 ) {
     // SDK and state variables
     val context = LocalContext.current
@@ -100,7 +99,7 @@ fun TypingPatternVerificationScreen(
                     IconButton(onClick = {
                         scope.launch {
                             typingProfileService?.stopService()
-                            onClose()
+                            onVerificationResult(false) // Report failure/cancellation
                         }
                     }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -204,7 +203,7 @@ fun TypingPatternVerificationScreen(
             text = { Text(if (state.isSuccess) "Your identity has been verified." else "Your typing pattern could not be verified.") },
             confirmButton = {
                 if (state.isSuccess) {
-                    Button(onClick = onVerificationSuccess) {
+                    Button(onClick = { onVerificationResult(true) }) { // Report success
                         Text("Proceed")
                     }
                 } else {
@@ -225,7 +224,7 @@ fun TypingPatternVerificationScreen(
                     TextButton(onClick = {
                         scope.launch {
                             typingProfileService?.stopService()
-                            onClose()
+                            onVerificationResult(false) // Report failure
                         }
                     }) {
                         Text("Close")

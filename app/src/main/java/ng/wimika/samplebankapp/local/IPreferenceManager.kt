@@ -15,10 +15,6 @@ interface IPreferenceManager {
     fun getBankSessionId(): String?
     fun getBankUserFullName(): String?
 
-    // Moneyguard enabled status
-    //fun saveMoneyguardEnabled(enabled: Boolean)
-    //fun isMoneyguardEnabled(): Boolean
-
     // User names from Moneyguard
     fun saveMoneyguardUserNames(firstName: String?, lastName: String?)
     fun getMoneyguardFirstName(): String?
@@ -27,6 +23,10 @@ interface IPreferenceManager {
     // MoneyGuard setup preferences
     fun saveMoneyGuardSetupPreferences(preferences: MoneyGuardSetupPreferences?)
     fun getMoneyGuardSetupPreferences(): MoneyGuardSetupPreferences?
+    
+    // New methods for suspicious login
+    fun saveSuspiciousLoginStatus(isSuspicious: Boolean)
+    fun isSuspiciousLogin(): Boolean
 
     fun clear()
 }

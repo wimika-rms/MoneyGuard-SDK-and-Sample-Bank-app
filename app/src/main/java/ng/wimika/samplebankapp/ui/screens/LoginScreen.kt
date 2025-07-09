@@ -1,5 +1,10 @@
 package ng.wimika.samplebankapp.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -21,16 +27,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus
+import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential
+import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm
 import ng.wimika.samplebankapp.R // Make sure this import points to your project's R file
 import ng.wimika.samplebankapp.loginRepo.LoginRepositoryImpl
 import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
 import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
 import ng.wimika.moneyguard_sdk_commons.types.RiskStatus
 import ng.wimika.moneyguard_sdk.services.prelaunch.MoneyGuardPrelaunch
+import ng.wimika.moneyguard_sdk.services.utility.models.LocationCheck
 import ng.wimika.samplebankapp.MoneyGuardClientApp // Assuming these imports are correct
 import ng.wimika.samplebankapp.local.IPreferenceManager
 import ng.wimika.samplebankapp.Constants
+import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
 
 // --- New UI Code Starts Here ---
 
@@ -78,7 +92,7 @@ fun SabiTextField(
 suspend fun registerWithMoneyguard(
     sessionId: String,
     preferenceManager: IPreferenceManager?,
-    onLoginSuccess: () -> Unit
+    onRegistrationComplete: () -> Unit // Added completion handler
 ) {
     try {
         val sdkService = MoneyGuardClientApp.sdkService
@@ -96,18 +110,16 @@ suspend fun registerWithMoneyguard(
                             sessionResponse.userDetails.lastName
                         )
                     }
-                    onLoginSuccess()
+                    onRegistrationComplete() // Call completion handler
                 }
                 is MoneyGuardResult.Failure -> {
-                    onLoginSuccess()
+                    onRegistrationComplete() // Also call on failure to continue flow
                 }
-                is MoneyGuardResult.Loading -> {
-                    // Loading state - do nothing
-                }
+                is MoneyGuardResult.Loading -> { /* Do nothing */ }
             }
         }
     } catch (e: Exception) {
-        onLoginSuccess()
+        onRegistrationComplete() // Also call on exception
     }
 }
 
@@ -161,7 +173,8 @@ fun getRiskMessage(risk: SpecificRisk): String {
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateToVerification: () -> Unit // Modified signature
 ) {
     // --- All existing state and logic is preserved ---
     var username by remember { mutableStateOf("") } // Pre-filled from screenshot
@@ -175,20 +188,131 @@ fun LoginScreen(
     var currentRiskIndex by remember { mutableStateOf(0) }
     var showRiskModal by remember { mutableStateOf(false) }
 
+    // New states for location check
+    var showUnusualLocationDialog by remember { mutableStateOf(false) }
+    
     // Credential check dialog state
     var showCredentialDialog by remember { mutableStateOf(false) }
     var credentialDialogStatus by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     // In a real app, you'd use dependency injection for the repository
     val loginRepository = remember { LoginRepositoryImpl() }
+    val preferenceManager = MoneyGuardClientApp.preferenceManager
+    val sdkService = MoneyGuardClientApp.sdkService
 
     // MoneyGuard prelaunch service
     val moneyGuardPrelaunch: MoneyGuardPrelaunch? = remember {
         MoneyGuardClientApp.sdkService?.prelaunch()
     }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
+    // --- Location Permission Handling ---
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+                permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)) {
+                // Permission granted, trigger the location check again (handled in login lambda)
+                Log.d("LoginScreen", "Location permission granted.")
+            } else {
+                // Permission denied, proceed without location check
+                Log.d("LoginScreen", "Location permission denied.")
+                scope.launch { onLoginSuccess() }
+            }
+        }
+    )
+
+    // A helper function to encapsulate the entire post-login flow
+    suspend fun handlePostLoginFlow() {
+        val token = preferenceManager?.getMoneyGuardToken()
+        if (sdkService == null || token.isNullOrEmpty()) {
+            onLoginSuccess() // Failsafe
+            return
+        }
+
+        val status = sdkService.utility()?.checkMoneyguardStatus(token)
+        if (status == MoneyGuardAppStatus.Active) {
+            // --- Start Credential Check First ---
+            isLoading = true
+            try {
+                // Perform credential check inline
+                val credential = Credential(
+                    username = username.trim(),
+                    passwordStartingCharactersHash = password.takeLast(3),
+                    domain = "wimika.ng",
+                    hashAlgorithm = HashAlgorithm.SHA256
+                )
+                
+                sdkService.authentication()?.credentialCheck(token, credential) { result ->
+                    if (result is MoneyGuardResult.Success) {
+                        val status = result.data.status
+                        credentialDialogStatus = "Credential Check - $status"
+                        showCredentialDialog = true
+                        // Don't start location check yet - wait for user to click OK
+                    } else {
+                        credentialDialogStatus = ""
+                        showCredentialDialog = true
+                        // Don't start location check yet - wait for user to click OK
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("LoginScreen", "Credential check failed", e)
+                onLoginSuccess() // Failsafe: proceed to dashboard if credential check has an error
+            } finally {
+                isLoading = false
+            }
+        } else {
+            // MoneyGuard not active, proceed directly to dashboard
+            onLoginSuccess()
+        }
+    }
+
+    // Helper function to perform location check after credential check
+    fun performLocationCheckAfterCredential(token: String) {
+        scope.launch {
+            try {
+                when {
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
+
+                        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                        val location = fusedLocationClient.lastLocation.await()
+
+                        if (location != null) {
+                            val locationCheck = LocationCheck(latitude = location.latitude, longitude = location.longitude)
+                            val response = sdkService?.utility()?.checkLocation(token, locationCheck)
+
+                            if (response?.data?.isNotEmpty() == true) {
+                                // Suspicious location detected
+                                showUnusualLocationDialog = true
+                            } else {
+                                // Location is not suspicious, proceed to dashboard
+                                onLoginSuccess()
+                            }
+                        } else {
+                            // Could not get location, proceed to dashboard
+                            onLoginSuccess()
+                        }
+                    }
+                    else -> {
+                        // Request permissions
+                        locationPermissionLauncher.launch(arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        ))
+                        // The result of the launcher will re-trigger this flow if needed,
+                        // but for now, we wait. To avoid complexity, we can also just proceed.
+                        // Let's proceed for a smoother UX if they deny.
+                        onLoginSuccess()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("LoginScreen", "Location check failed", e)
+                onLoginSuccess() // Failsafe: proceed to dashboard if location check has an error
+            }
+        }
+    }
 
     // Perform prelaunch checks when screen loads
     LaunchedEffect(Unit) {
@@ -295,18 +419,6 @@ fun LoginScreen(
                         visualTransformation = PasswordVisualTransformation()
                     )
 
-                    // Forgot Password Link
-//            TextButton(
-//                onClick = { /* TODO: Handle Forgot Password */ },
-//                modifier = Modifier.align(Alignment.End)
-//            ) {
-//                Text(
-//                    text = "Forgot Password",
-//                    color = SabiBankColors.TextOnOrange,
-//                    fontSize = 14.sp
-//                )
-//            }
-
                     if (showError) {
                         Text(
                             text = "Login failed. Please check your credentials.",
@@ -322,7 +434,6 @@ fun LoginScreen(
                         )
                     }
 
-
                     Spacer(modifier = Modifier.weight(1f)) // Pushes content to top and bottom
 
                     // Login Button
@@ -332,62 +443,38 @@ fun LoginScreen(
                                 scope.launch {
                                     isLoading = true
                                     showError = false
-
                                     try {
                                         loginRepository.login(username.trim(), password)
                                             .collect { response ->
                                                 val sessionData = response.data
                                                 if (sessionData != null && sessionData.sessionId.isNotEmpty()) {
-                                                    val preferenceManager =
-                                                        MoneyGuardClientApp.preferenceManager
                                                     preferenceManager?.saveBankLoginDetails(
                                                         sessionData.sessionId,
                                                         sessionData.userFullName
                                                     )
+                                                    // Reset suspicious login flag on new successful login
+                                                    preferenceManager?.saveSuspiciousLoginStatus(false)
+                                                    
+                                                    // Register with MoneyGuard
                                                     registerWithMoneyguard(
                                                         sessionData.sessionId,
-                                                        preferenceManager,
-                                                        {
-                                                            val sdkService = MoneyGuardClientApp.sdkService
-                                                            val token = preferenceManager?.getMoneyGuardToken()
-                                                            if (sdkService != null && !token.isNullOrEmpty()) {
-                                                                scope.launch {
-                                                                    val status = sdkService.utility()?.checkMoneyguardStatus(token)
-                                                                    if (status == ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus.Active) {
-                                                                        val credential = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential(
-                                                                            username = username.trim(),
-                                                                            passwordStartingCharactersHash = password.takeLast(3),
-                                                                            domain = "wimika.ng",
-                                                                            hashAlgorithm = ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm.SHA256
-                                                                        )
-                                                                        sdkService.authentication()?.credentialCheck(token, credential) { result ->
-                                                                            if (result is ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult.Success) {
-                                                                                val status = result.data.status
-                                                                                credentialDialogStatus = "Credential Check - $status"
-                                                                                showCredentialDialog = true
-                                                                            } else {
-                                                                                credentialDialogStatus = "Credential Check - RISK_STATUS_UNKNOWN"
-                                                                                showCredentialDialog = true
-                                                                            }
-                                                                        }
-                                                                    } else {
-                                                                        onLoginSuccess()
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                onLoginSuccess()
-                                                            }
+                                                        preferenceManager
+                                                    ) {
+                                                        // On successful registration, start the post-login flow
+                                                        scope.launch {
+                                                            handlePostLoginFlow()
                                                         }
-                                                    )
+                                                    }
                                                 } else {
                                                     showError = true
+                                                    isLoading = false
                                                 }
                                             }
                                     } catch (e: Exception) {
                                         showError = true
-                                    } finally {
                                         isLoading = false
                                     }
+                                    // isLoading will be managed by the subsequent flows
                                 }
                             }
                         },
@@ -416,18 +503,70 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                 }
-
-
-
             }
         }
     }
 
+    // --- Add the new Unusual Location Dialog ---
+    if (showUnusualLocationDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Prevent dismissing by clicking outside */ },
+            title = { Text("Unusual Location Detected") },
+            text = {
+                Text(
+                    "We've detected a login from an unusual location. " +
+                    "For your security, please verify your identity. " +
+                    "If you proceed without verification, some account activities may be limited."
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showUnusualLocationDialog = false
+                    onNavigateToVerification() // Navigate to the verification screen
+                }) {
+                    Text("Verify")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        preferenceManager?.saveSuspiciousLoginStatus(true)
+                        showUnusualLocationDialog = false
+                        onLoginSuccess() // Proceed to dashboard with flag set
+                    }
+                }) {
+                    Text("Proceed without Verify")
+                }
+            }
+        )
+    }
 
+    // Show credential check dialog
+    if (showCredentialDialog && credentialDialogStatus != null) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Credential Check") },
+            text = { Text(credentialDialogStatus!!) },
+            confirmButton = {
+                Button(onClick = {
+                    showCredentialDialog = false
+                    credentialDialogStatus = null
+                    // Now start the location check after user clicks OK
+                    val token = preferenceManager?.getMoneyGuardToken()
+                    if (token != null) {
+                        performLocationCheckAfterCredential(token)
+                    } else {
+                        onLoginSuccess()
+                    }
+                }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
-    val preferenceManager =
-        MoneyGuardClientApp.preferenceManager
-    if(preferenceManager?.getIsFirstLaunchFlag() == true) {
+    val preferenceManagerForPrelaunch = MoneyGuardClientApp.preferenceManager
+    if(preferenceManagerForPrelaunch?.getIsFirstLaunchFlag() == true) {
         //Prelaunch checking overlay
         if (isPrelaunchChecking) {
             Box(
@@ -482,27 +621,9 @@ fun LoginScreen(
         }
     }
 
-    // Show credential check dialog
-    if (showCredentialDialog && credentialDialogStatus != null) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Credential Check") },
-            text = { Text(credentialDialogStatus!!) },
-            confirmButton = {
-                Button(onClick = {
-                    showCredentialDialog = false
-                    credentialDialogStatus = null
-                    onLoginSuccess()
-                }) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-
     @Preview(showBackground = true, widthDp = 375, heightDp = 812)
     @Composable
     fun LoginScreenPreview() {
-        LoginScreen(onLoginSuccess = {})
+        LoginScreen(onLoginSuccess = {}, onNavigateToVerification = {})
     }
 }

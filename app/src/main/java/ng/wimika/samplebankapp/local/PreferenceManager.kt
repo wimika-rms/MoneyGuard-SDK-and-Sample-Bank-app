@@ -26,6 +26,9 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         
         // MoneyGuard setup preferences
         private const val MONEYGUARD_SETUP_PREFERENCES = "moneyguard_setup_preferences"
+        
+        // New constant for suspicious login
+        private const val SUSPICIOUS_LOGIN_STATUS = "suspicious_login_status"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -75,15 +78,6 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         return sharedPreferences.getString(BANK_USER_FULL_NAME, null)
     }
 
-    // Moneyguard enabled status
-//    override fun saveMoneyguardEnabled(enabled: Boolean) {
-//        sharedPreferences.edit { putBoolean(MONEYGUARD_ENABLED, enabled) }
-//    }
-
-//    override fun isMoneyguardEnabled(): Boolean {
-//        return sharedPreferences.getBoolean(MONEYGUARD_ENABLED, false)
-//    }
-
     // User names from Moneyguard
     override fun saveMoneyguardUserNames(firstName: String?, lastName: String?) {
         sharedPreferences.edit { 
@@ -119,8 +113,22 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         }
     }
 
+    // New methods implementation
+    override fun saveSuspiciousLoginStatus(isSuspicious: Boolean) {
+        sharedPreferences.edit { putBoolean(SUSPICIOUS_LOGIN_STATUS, isSuspicious) }
+    }
+
+    override fun isSuspiciousLogin(): Boolean {
+        return sharedPreferences.getBoolean(SUSPICIOUS_LOGIN_STATUS, false)
+    }
+
     override fun clear() {
-        sharedPreferences.edit { clear() }
+        sharedPreferences.edit { 
+            // Keep the first launch flag but clear everything else
+            val isFirstLaunch = getIsFirstLaunchFlag() ?: false
+            clear()
+            putBoolean(IS_FIRST_LAUNCH, isFirstLaunch)
+        }
     }
 
 }
