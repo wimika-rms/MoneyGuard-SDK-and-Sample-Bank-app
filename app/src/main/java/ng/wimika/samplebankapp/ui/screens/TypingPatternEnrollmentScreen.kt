@@ -107,7 +107,7 @@ fun TypingPatternScreen(
     // This effect triggers when the final step is completed
     LaunchedEffect(showSuccessBanner) {
         if (showSuccessBanner) {
-            delay(1000L) // Wait for 1 second as requested
+            delay(5000L) // Wait for 1 second as requested
             onRegistrationComplete()
         }
     }
@@ -177,8 +177,9 @@ fun TypingPatternScreen(
                                 Log.d(LOG_TAG, "Step $currentStep result: $result")
                                 if (result.success) {
                                     if (currentStep < totalSteps) {
-                                        currentStep++; userInput = ""; editText?.setText("")
+                                        currentStep++; userInput = ""; editText?.setText(""); sdkService.getTypingProfile().resetService()
                                     } else {
+                                        sdkService.getTypingProfile().stopService()
                                         showSuccessBanner = true
                                     }
                                 } else {
