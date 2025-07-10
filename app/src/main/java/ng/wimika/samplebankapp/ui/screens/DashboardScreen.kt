@@ -342,16 +342,26 @@ private fun RiskScoreCard() {
     var riskScore by remember { mutableStateOf<Int?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // Fetch risk score on first composition
+    // Continuously check for risk score at 3-second intervals until we get a score > 0
     LaunchedEffect(token) {
         if (sdkService != null && !token.isNullOrEmpty()) {
-            try {
-                val riskProfile = sdkService.riskProfile()?.getRiskProfile()
-                riskScore = riskProfile?.sumOf { it.score.value.toInt() }
-            } catch (e: Exception) {
-                riskScore = null
-            } finally {
-                isLoading = false
+            while (true) {
+                try {
+                    val riskProfile = sdkService.riskProfile()?.getRiskProfile()
+                    val currentRiskScore = riskProfile?.sumOf { it.score.value.toInt() } ?: 0
+                    
+                    if (currentRiskScore > 0) {
+                        riskScore = currentRiskScore
+                        isLoading = false
+                        break // Exit the loop once we get a valid score
+                    }
+                    
+                    // Wait 3 seconds before next check
+                    kotlinx.coroutines.delay(3000)
+                } catch (e: Exception) {
+                    // On error, wait 3 seconds before retrying
+                    kotlinx.coroutines.delay(3000)
+                }
             }
         } else {
             isLoading = false
@@ -360,11 +370,22 @@ private fun RiskScoreCard() {
 
     if (isLoading) {
         Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFFF97316))
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color(0xFFF97316))
+                Text(
+                    text = "Please launch Moneyguard",
+                    style = MaterialTheme.typography.titleSmall,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black
+                )
+            }
         }
         return
     }
-    if (riskScore == null) return
+    if (riskScore == null || riskScore == 0) return
 
     // Determine the message based on the risk score
     val message = when {

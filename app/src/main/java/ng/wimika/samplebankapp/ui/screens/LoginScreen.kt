@@ -251,7 +251,7 @@ fun LoginScreen(
                         showCredentialDialog = true
                         // Don't start location check yet - wait for user to click OK
                     } else {
-                        credentialDialogStatus = ""
+                        credentialDialogStatus = "Loading..."
                         showCredentialDialog = true
                         // Don't start location check yet - wait for user to click OK
                     }
