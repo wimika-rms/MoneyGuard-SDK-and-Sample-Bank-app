@@ -147,16 +147,21 @@ private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardApp
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            Text(
-                text = if (moneyGuardAppStatus == MoneyGuardAppStatus.Active) {
-                    "Launch MoneyGuard"
-                } else {
-                    "Protect Account"
-                },
-                color = Color.White,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            if(moneyGuardAppStatus != null) {
+                Text(
+                    text = if (moneyGuardAppStatus == MoneyGuardAppStatus.Active) {
+                        "Launch MoneyGuard"
+                    } else {
+                        "Protect Account"
+                    },
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            else{
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+            }
         }
 
     }
