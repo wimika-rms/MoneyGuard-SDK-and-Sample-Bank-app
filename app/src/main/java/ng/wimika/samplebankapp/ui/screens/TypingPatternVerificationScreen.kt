@@ -94,7 +94,7 @@ fun TypingPatternVerificationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Verify Typing Pattern") },
+                title = { Text("Please type the words shown below") },
                 navigationIcon = {
                     IconButton(onClick = {
                         scope.launch {
@@ -118,7 +118,7 @@ fun TypingPatternVerificationScreen(
                 .imePadding()
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-            Text(textToType, fontSize = 22.sp, lineHeight = 30.sp, color = Color.DarkGray, modifier = Modifier.padding(bottom = 24.dp))
+            Text(textToType, fontSize = 22.sp, lineHeight = 30.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
 
             AndroidView(
                 factory = { ctx ->
@@ -187,7 +187,7 @@ fun TypingPatternVerificationScreen(
                 if (isLoading) {
                     CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                 } else {
-                    Text("Submit", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Verify", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(48.dp))

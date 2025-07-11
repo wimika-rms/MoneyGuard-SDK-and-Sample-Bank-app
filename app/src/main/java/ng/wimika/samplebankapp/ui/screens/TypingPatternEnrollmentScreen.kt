@@ -135,7 +135,7 @@ fun TypingPatternScreen(
                     .imePadding()
             ) {
                 MultiStepProgressBar(currentStep, totalSteps, Modifier.padding(top = 16.dp, bottom = 32.dp))
-                Text(textToType, fontSize = 22.sp, lineHeight = 30.sp, color = Color.DarkGray, modifier = Modifier.padding(bottom = 24.dp))
+                Text(textToType, fontSize = 22.sp, lineHeight = 30.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
 
                 AndroidView(
                     factory = { ctx ->

@@ -366,7 +366,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "v0.3.6",
+                        text = "v0.3.8",
                         color = Color.Gray,
                         fontSize = 14.sp,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
