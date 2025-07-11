@@ -36,6 +36,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ng.wimika.samplebankapp.MoneyGuardClientApp
+import ng.wimika.samplebankapp.ui.screens.ConsoleDialog
+import ng.wimika.samplebankapp.loginRepo.ShareLogsRepositoryImpl
+import ng.wimika.samplebankapp.Constants
+import android.os.Build
 
 private const val LOG_TAG = "typing-pattern-enroll"
 private const val TYPING_PROFILE_INPUT_ID = 1001 // Unique ID for the EditText
@@ -58,6 +62,10 @@ fun TypingPatternScreen(
     var editText by remember { mutableStateOf<EditText?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var showSuccessBanner by remember { mutableStateOf(false) }
+    var showConsoleDialog by remember { mutableStateOf(false) }
+    var debugLogs by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isSharingLogs by remember { mutableStateOf(false) }
+    var hasSharedLogs by remember { mutableStateOf(false) }
 
     // This state acts as a trigger to re-run the permission check.
     var permissionCheckTrigger by remember { mutableStateOf(0) }
@@ -67,6 +75,48 @@ fun TypingPatternScreen(
     val lastName = preferenceManager?.getMoneyguardLastName()?.takeIf { it.isNotBlank() } ?: "Doe"
     val textToType by remember {
         mutableStateOf("hello, my name is $firstName $lastName")
+    }
+
+    // Function to add debug logs
+    fun addDebugLog(message: String) {
+        if (preferenceManager?.isDebugLogsEnabled() == true) {
+            val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+            debugLogs = debugLogs + "[$timestamp] $message"
+        }
+    }
+
+    // Function to share logs
+    fun shareLogs() {
+        scope.launch {
+            isSharingLogs = true
+            try {
+                val userEmail = preferenceManager?.getUserEmail() ?: "unknown@user.com"
+                val androidVersion = Build.VERSION.RELEASE
+                val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
+                val logContent = debugLogs.joinToString("\n")
+                val appVersion = Constants.APP_VERSION
+
+                val shareLogsRepository = ShareLogsRepositoryImpl()
+                shareLogsRepository.shareLogs(
+                    userEmail = userEmail,
+                    androidVersion = androidVersion,
+                    deviceModel = deviceModel,
+                    logContent = logContent,
+                    appVersion = appVersion
+                ).collect { isSuccess ->
+                    if (isSuccess) {
+                        addDebugLog("Logs shared successfully")
+                    } else {
+                        addDebugLog("Failed to share logs")
+                    }
+                }
+            } catch (e: Exception) {
+                addDebugLog("Exception while sharing logs: ${e.message}")
+            } finally {
+                isSharingLogs = false
+                hasSharedLogs = true
+            }
+        }
     }
 
     // Launcher for the settings screen. When the user returns, we increment the trigger.
@@ -88,12 +138,15 @@ fun TypingPatternScreen(
                 val typingProfile = sdkService?.getTypingProfile()
                 typingProfile?.startService(context as Activity, intArrayOf(TYPING_PROFILE_INPUT_ID))
                 Log.d(LOG_TAG, "Overlay permission granted. Typing service started.")
+                addDebugLog("Overlay permission granted. Typing service started.")
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Failed to start typing profile service", e)
+                addDebugLog("Failed to start typing profile service: ${e.message}")
             }
         } else {
             // PERMISSION NOT GRANTED: Navigate to settings
             Log.d(LOG_TAG, "Overlay permission not granted. Requesting user to enable.")
+            addDebugLog("Overlay permission not granted. Requesting user to enable.")
             Toast.makeText(context, "Overlay permission is required for this feature.", Toast.LENGTH_LONG).show()
 
             val intent = Intent(
@@ -175,32 +228,45 @@ fun TypingPatternScreen(
 
                         scope.launch {
                             isLoading = true
+                            addDebugLog("Starting typing pattern enrollment step $currentStep")
                             try {
 
                                 val token = preferenceManager?.getMoneyGuardToken()
                                 if (sdkService == null || token.isNullOrEmpty()) {
                                     Log.e(LOG_TAG, "SDK service or token is not available.")
+                                    addDebugLog("Error: SDK service or token is not available.")
                                     Toast.makeText(context, "Error: SDK not initialized.", Toast.LENGTH_SHORT).show()
                                     return@launch
                                 }
+                                addDebugLog("Token available, proceeding with typing match")
                                 val result = sdkService.getTypingProfile().matchTypingProfile(userInput, token)
                                 Log.d(LOG_TAG, "Step $currentStep result: $result")
+                                addDebugLog("Step $currentStep. data from TP: message ${result.message}, action ${result.action}, matched ${result.matched}, enrollment ${result.enrollment}, high confidence ${result.high_Confidence}")
 
                                 if (result.success) {
+                                    addDebugLog("Step $currentStep successful")
                                     if (currentStep < totalSteps) {
                                         currentStep++; userInput = ""; editText?.setText(""); sdkService.getTypingProfile().resetService()
+                                        addDebugLog("Moving to step ${currentStep + 1}")
                                     } else {
                                         sdkService.getTypingProfile().stopService()
                                         showSuccessBanner = true
+                                        addDebugLog("Typing pattern enrollment completed successfully")
                                     }
                                 } else {
+                                    addDebugLog("Step $currentStep failed: ${result.message}")
                                     Toast.makeText(context, "Match failed: ${result.message}", Toast.LENGTH_LONG).show()
                                 }
                             } catch (e: Exception) {
                                 Log.e(LOG_TAG, "An error occurred during typing match", e)
+                                addDebugLog("Exception during typing match: ${e.message}")
                                 Toast.makeText(context, "An error occurred: ${e.message}", Toast.LENGTH_LONG).show()
                             } finally {
                                 isLoading = false
+                                // Show console dialog if debug logs are enabled
+                                if (preferenceManager?.isDebugLogsEnabled() == true) {
+                                    showConsoleDialog = true
+                                }
                             }
                         }
                     },
@@ -228,6 +294,20 @@ fun TypingPatternScreen(
         ) {
             SuccessBanner()
         }
+    }
+
+    // Console Dialog
+    if (showConsoleDialog) {
+        ConsoleDialog(
+            logs = debugLogs,
+            onClose = { 
+                showConsoleDialog = false
+                hasSharedLogs = false // Reset shared state when dialog closes
+            },
+            onShareLogs = { shareLogs() },
+            isSharing = isSharingLogs,
+            isShared = hasSharedLogs
+        )
     }
 }
 

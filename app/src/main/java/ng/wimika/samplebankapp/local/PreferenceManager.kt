@@ -29,6 +29,12 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         
         // New constant for suspicious login
         private const val SUSPICIOUS_LOGIN_STATUS = "suspicious_login_status"
+        
+        // Debug logs preference
+        private const val DEBUG_LOGS_ENABLED = "debug_logs_enabled"
+        
+        // User email preference
+        private const val USER_EMAIL = "user_email"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -120,6 +126,24 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
 
     override fun isSuspiciousLogin(): Boolean {
         return sharedPreferences.getBoolean(SUSPICIOUS_LOGIN_STATUS, false)
+    }
+
+    // Debug logs preference implementation
+    override fun saveDebugLogsEnabled(enabled: Boolean) {
+        sharedPreferences.edit { putBoolean(DEBUG_LOGS_ENABLED, enabled) }
+    }
+
+    override fun isDebugLogsEnabled(): Boolean {
+        return sharedPreferences.getBoolean(DEBUG_LOGS_ENABLED, false)
+    }
+
+    // User email preference implementation
+    override fun saveUserEmail(email: String?) {
+        sharedPreferences.edit { putString(USER_EMAIL, email) }
+    }
+
+    override fun getUserEmail(): String? {
+        return sharedPreferences.getString(USER_EMAIL, null)
     }
 
     override fun clear() {

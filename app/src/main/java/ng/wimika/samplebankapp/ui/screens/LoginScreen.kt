@@ -44,6 +44,7 @@ import ng.wimika.moneyguard_sdk.services.utility.models.LocationCheck
 import ng.wimika.samplebankapp.MoneyGuardClientApp // Assuming these imports are correct
 import ng.wimika.samplebankapp.local.IPreferenceManager
 import ng.wimika.samplebankapp.Constants
+import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
 
 // --- New UI Code Starts Here ---
@@ -181,6 +182,7 @@ fun LoginScreen(
     var password by remember { mutableStateOf("********") } // Pre-filled from screenshot
     var isLoading by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    var debugLogsEnabled by remember { mutableStateOf(preferenceManager?.isDebugLogsEnabled() ?: false) }
 
     // Prelaunch check states
     var isPrelaunchChecking by remember { mutableStateOf(true) }
@@ -366,7 +368,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "v0.3.8",
+                        text = "v${Constants.APP_VERSION}",
                         color = Color.Gray,
                         fontSize = 14.sp,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -436,6 +438,35 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.weight(1f)) // Pushes content to top and bottom
 
+                    // Debug Logs Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Enable debug logs",
+                            color = SabiBankColors.TextOnOrange,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Switch(
+                            checked = debugLogsEnabled,
+                            onCheckedChange = { enabled ->
+                                debugLogsEnabled = enabled
+                                preferenceManager?.saveDebugLogsEnabled(enabled)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = SabiBankColors.White,
+                                checkedTrackColor = SabiBankColors.White.copy(alpha = 0.7f),
+                                uncheckedThumbColor = SabiBankColors.TextOnOrange.copy(alpha = 0.7f),
+                                uncheckedTrackColor = SabiBankColors.TextOnOrange.copy(alpha = 0.3f)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     // Login Button
                     Button(
                         onClick = {
@@ -452,6 +483,8 @@ fun LoginScreen(
                                                         sessionData.sessionId,
                                                         sessionData.userFullName
                                                     )
+                                                    // Save user email for log sharing
+                                                    preferenceManager?.saveUserEmail(username.trim())
                                                     // Reset suspicious login flag on new successful login
                                                     preferenceManager?.saveSuspiciousLoginStatus(false)
                                                     

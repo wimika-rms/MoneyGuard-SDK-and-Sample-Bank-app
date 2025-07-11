@@ -31,6 +31,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.launch
 import ng.wimika.samplebankapp.MoneyGuardClientApp
+import ng.wimika.samplebankapp.ui.screens.ConsoleDialog
+import ng.wimika.samplebankapp.loginRepo.ShareLogsRepositoryImpl
+import ng.wimika.samplebankapp.Constants
+import android.os.Build
 
 // Define a sealed class to manage the state of the result dialog
 private sealed class VerificationDialogState {
@@ -57,12 +61,58 @@ fun TypingPatternVerificationScreen(
     var editText by remember { mutableStateOf<EditText?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var dialogState by remember { mutableStateOf<VerificationDialogState>(VerificationDialogState.Hidden) }
+    var showConsoleDialog by remember { mutableStateOf(false) }
+    var debugLogs by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isSharingLogs by remember { mutableStateOf(false) }
+    var hasSharedLogs by remember { mutableStateOf(false) }
 
     // Get user's name for the prompt text
     val firstName = preferenceManager?.getMoneyguardFirstName()?.takeIf { it.isNotBlank() } ?: "John"
     val lastName = preferenceManager?.getMoneyguardLastName()?.takeIf { it.isNotBlank() } ?: "Doe"
     val textToType by remember {
         mutableStateOf("hello, my name is $firstName $lastName")
+    }
+
+    // Function to add debug logs
+    fun addDebugLog(message: String) {
+        if (preferenceManager?.isDebugLogsEnabled() == true) {
+            val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+            debugLogs = debugLogs + "[$timestamp] $message"
+        }
+    }
+
+    // Function to share logs
+    fun shareLogs() {
+        scope.launch {
+            isSharingLogs = true
+            try {
+                val userEmail = preferenceManager?.getUserEmail() ?: "unknown@user.com"
+                val androidVersion = Build.VERSION.RELEASE
+                val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
+                val logContent = debugLogs.joinToString("\n")
+                val appVersion = Constants.APP_VERSION
+
+                val shareLogsRepository = ShareLogsRepositoryImpl()
+                shareLogsRepository.shareLogs(
+                    userEmail = userEmail,
+                    androidVersion = androidVersion,
+                    deviceModel = deviceModel,
+                    logContent = logContent,
+                    appVersion = appVersion
+                ).collect { isSuccess ->
+                    if (isSuccess) {
+                        addDebugLog("Logs shared successfully")
+                    } else {
+                        addDebugLog("Failed to share logs")
+                    }
+                }
+            } catch (e: Exception) {
+                addDebugLog("Exception while sharing logs: ${e.message}")
+            } finally {
+                isSharingLogs = false
+                hasSharedLogs = true
+            }
+        }
     }
 
     // --- Permission Handling (Reused from enrollment) ---
@@ -80,11 +130,14 @@ fun TypingPatternVerificationScreen(
             try {
                 typingProfileService?.startService(context as Activity, intArrayOf(VERIFY_TYPING_INPUT_ID))
                 Log.d(VERIFY_LOG_TAG, "Overlay permission granted. Typing service started.")
+                addDebugLog("Overlay permission granted. Typing service started.")
             } catch (e: Exception) {
                 Log.e(VERIFY_LOG_TAG, "Failed to start typing profile service", e)
+                addDebugLog("Failed to start typing profile service: ${e.message}")
             }
         } else {
             Toast.makeText(context, "Overlay permission is required for this feature.", Toast.LENGTH_LONG).show()
+            addDebugLog("Overlay permission not granted. Requesting user to enable.")
             val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
             settingsLauncher.launch(intent)
         }
@@ -98,6 +151,7 @@ fun TypingPatternVerificationScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         scope.launch {
+                            addDebugLog("User cancelled verification, stopping service")
                             typingProfileService?.stopService()
                             onVerificationResult(false) // Report failure/cancellation
                         }
@@ -153,26 +207,38 @@ fun TypingPatternVerificationScreen(
                     }
                     scope.launch {
                         isLoading = true
+                        addDebugLog("Starting typing pattern verification")
                         try {
                             val token = preferenceManager?.getMoneyGuardToken()
                             if (typingProfileService == null || token.isNullOrEmpty()) {
+                                addDebugLog("Error: SDK not initialized.")
                                 Toast.makeText(context, "Error: SDK not initialized.", Toast.LENGTH_SHORT).show()
                                 return@launch
                             }
+                            addDebugLog("Token available, proceeding with verification")
                             val result = typingProfileService.matchTypingProfile(userInput, token)
                             Log.d(VERIFY_LOG_TAG, "Verification result: $result")
+                            addDebugLog("Verification result: ${result.message}")
 
                             val isSuccess = result.success && result.matched
                             if (isSuccess) {
                                 typingProfileService.stopService()
+                                addDebugLog("Verification successful, service stopped")
+                            } else {
+                                addDebugLog("Verification failed: ${result.message}")
                             }
                             dialogState = VerificationDialogState.Shown(isSuccess, result.message)
 
                         } catch (e: Exception) {
                             Log.e(VERIFY_LOG_TAG, "An error occurred during verification", e)
+                            addDebugLog("Exception during verification: ${e.message}")
                             dialogState = VerificationDialogState.Shown(false, e.message ?: "An unknown error occurred")
                         } finally {
                             isLoading = false
+                            // Show console dialog if debug logs are enabled
+                            if (preferenceManager?.isDebugLogsEnabled() == true) {
+                                showConsoleDialog = true
+                            }
                         }
                     }
                 },
@@ -203,12 +269,16 @@ fun TypingPatternVerificationScreen(
             text = { Text(if (state.isSuccess) "Your identity has been verified." else "Your typing pattern could not be verified.") },
             confirmButton = {
                 if (state.isSuccess) {
-                    Button(onClick = { onVerificationResult(true) }) { // Report success
+                    Button(onClick = { 
+                        addDebugLog("User proceeding after successful verification")
+                        onVerificationResult(true) 
+                    }) { // Report success
                         Text("Proceed")
                     }
                 } else {
                     Button(onClick = {
                         scope.launch {
+                            addDebugLog("User chose to retry verification")
                             typingProfileService?.resetService()
                             userInput = ""
                             editText?.setText("")
@@ -223,6 +293,7 @@ fun TypingPatternVerificationScreen(
                 if (!state.isSuccess) {
                     TextButton(onClick = {
                         scope.launch {
+                            addDebugLog("User chose to close verification")
                             typingProfileService?.stopService()
                             onVerificationResult(false) // Report failure
                         }
@@ -231,6 +302,20 @@ fun TypingPatternVerificationScreen(
                     }
                 }
             }
+        )
+    }
+
+    // Console Dialog
+    if (showConsoleDialog) {
+        ConsoleDialog(
+            logs = debugLogs,
+            onClose = { 
+                showConsoleDialog = false
+                hasSharedLogs = false // Reset shared state when dialog closes
+            },
+            onShareLogs = { shareLogs() },
+            isSharing = isSharingLogs,
+            isShared = hasSharedLogs
         )
     }
 }

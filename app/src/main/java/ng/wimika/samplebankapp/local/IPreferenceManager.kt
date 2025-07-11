@@ -28,6 +28,14 @@ interface IPreferenceManager {
     fun saveSuspiciousLoginStatus(isSuspicious: Boolean)
     fun isSuspiciousLogin(): Boolean
 
+    // Debug logs preference
+    fun saveDebugLogsEnabled(enabled: Boolean)
+    fun isDebugLogsEnabled(): Boolean
+
+    // User email preference
+    fun saveUserEmail(email: String?)
+    fun getUserEmail(): String?
+
     fun clear()
 }
 
