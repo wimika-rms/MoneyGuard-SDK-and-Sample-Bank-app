@@ -713,6 +713,42 @@ The `TypingProfile` interface provides biometric authentication capabilities thr
 - **Lifecycle Management**: Provides comprehensive service lifecycle control
 - **Fraud Detection**: Integrates with MoneyGuard's broader security framework
 
+#### Usage Examples
+The `TypingProfile` interface is accessible through the main MoneyGuard SDK service:
+
+```kotlin
+val typingProfile = sdkService.getTypingProfile()
+```
+
+#### Basic Setup & Usage
+
+
+```kotlin
+class LoginActivity : AppCompatActivity() {
+    
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_login)
+        
+        // Start monitoring typing on username and password fields
+        val targets = intArrayOf(
+            R.id.edittext_username,
+            R.id.edittext_password
+        )
+        
+        lifecycleScope.launch {
+            typingProfile.startService(this@LoginActivity, targets)
+        }
+        
+        
+        // After typing
+        val combinedText = "$username$password"
+
+        // Match against stored profiles
+        val result = typingProfile.matchTypingProfile(combinedText, authToken)
+    }
+}
+```
 
 #### API Reference
 
@@ -846,48 +882,6 @@ data class TypingProfileResult(
 **Fields**:
 - `matchingIdentity`: User identity for pattern matching (typically empty)
 - `typingPattern`: Encoded typing pattern data
-
-#### Usage Examples
-The `TypingProfile` interface is accessible through the main MoneyGuard SDK service:
-
-```kotlin
-val sdk = MoneyGuardSdk.initialize(this)
-val typingProfile = sdk.getTypingProfile()
-```
-
-#### Basic Setup & Usage
-
-
-```kotlin
-class LoginActivity : AppCompatActivity() {
-    private lateinit var typingProfile: TypingProfile
-    
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
-        
-        // Get TypingProfile instance from MoneyGuard SDK
-        typingProfile = MoneyGuardSdk.getService().getTypingProfile()
-        
-        // Start monitoring typing on username and password fields
-        val targets = intArrayOf(
-            R.id.edittext_username,
-            R.id.edittext_password
-        )
-        
-        lifecycleScope.launch {
-            typingProfile.startService(this@LoginActivity, targets)
-        }
-        
-        
-        // After typing
-        val combinedText = "$username$password"
-
-        // Match against stored profiles
-        val result = typingProfile.matchTypingProfile(combinedText, authToken)
-    }
-}
-```
 
 ## Requirements
 
