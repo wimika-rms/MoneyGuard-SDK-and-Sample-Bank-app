@@ -703,14 +703,13 @@ try {
 
 #### Overview
 
-The `TypingProfile` interface provides biometric authentication capabilities through typing pattern recognition within the MoneyGuard SDK ecosystem. It leverages TypingDNA technology to capture and analyze unique typing characteristics for user authentication and fraud detection.
+The `TypingProfile` interface provides biometric authentication capabilities through typing pattern recognition within the MoneyGuard SDK.
 
 #### Key Features
 
 - **Biometric Authentication**: Captures unique typing patterns as a biometric identifier
 - **Real-time Recording**: Monitors typing behavior across specified UI targets
 - **Pattern Matching**: Compares captured patterns against stored user profiles
-- **Lifecycle Management**: Provides comprehensive service lifecycle control
 - **Fraud Detection**: Integrates with MoneyGuard's broader security framework
 
 #### Usage Examples
@@ -721,7 +720,6 @@ val typingProfile = sdkService.getTypingProfile()
 ```
 
 #### Basic Setup & Usage
-
 
 ```kotlin
 class LoginActivity : AppCompatActivity() {
