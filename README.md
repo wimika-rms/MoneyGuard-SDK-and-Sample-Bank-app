@@ -10,6 +10,15 @@ The MoneyGuard SDK is a powerful Android library that enables seamless integrati
 - **Transaction Security**: Real-time transaction monitoring and security checks
 - **Utility Functions**: Various utility functions for app integration
 - **Pre-launch Checks**: Risk assessment during app startup
+- **Typing Profile**: Biometric authentication through typing pattern recognition
+
+
+## Requirements
+
+- Android API level 21 or higher
+- Kotlin 1.5.0 or higher
+- AndroidX libraries
+
 
 ## Installation
 
@@ -876,16 +885,6 @@ data class TypingProfileResult(
     val asString: String,
 )
 ```
-
-**Fields**:
-- `matchingIdentity`: User identity for pattern matching (typically empty)
-- `typingPattern`: Encoded typing pattern data
-
-## Requirements
-
-- Android API level 21 or higher
-- Kotlin 1.5.0 or higher
-- AndroidX libraries
 
 ## Support
 
