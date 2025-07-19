@@ -57,7 +57,6 @@ fun TypingPatternScreen(
     val scope = rememberCoroutineScope()
 
     var currentStep by remember { mutableStateOf(1) }
-    val totalSteps = 3
     var userInput by remember { mutableStateOf("") }
     var editText by remember { mutableStateOf<EditText?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -187,7 +186,15 @@ fun TypingPatternScreen(
                     .padding(horizontal = 24.dp)
                     .imePadding()
             ) {
-                MultiStepProgressBar(currentStep, totalSteps, Modifier.padding(top = 16.dp, bottom = 32.dp))
+                Text(
+                    text = "Step: $currentStep",
+                    fontSize = 18.sp,
+                    color = Color.DarkGray,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .padding(top = 16.dp, bottom = 32.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
                 Text(textToType, fontSize = 22.sp, lineHeight = 30.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
 
                 AndroidView(
@@ -245,13 +252,16 @@ fun TypingPatternScreen(
 
                                 if (result.success) {
                                     addDebugLog("Step $currentStep successful")
-                                    if (currentStep < totalSteps) {
-                                        currentStep++; userInput = ""; editText?.setText(""); sdkService.getTypingProfile().resetService()
-                                        addDebugLog("Moving to step ${currentStep + 1}")
-                                    } else {
+                                    if (result.message.equals("Done", ignoreCase = true)) {
                                         sdkService.getTypingProfile().stopService()
                                         showSuccessBanner = true
                                         addDebugLog("Typing pattern enrollment completed successfully")
+                                    } else {
+                                        currentStep++
+                                        userInput = ""
+                                        editText?.setText("")
+                                        sdkService.getTypingProfile().resetService()
+                                        addDebugLog("Moving to next step")
                                     }
                                 } else {
                                     addDebugLog("Step $currentStep failed: ${result.message}")
@@ -311,20 +321,7 @@ fun TypingPatternScreen(
     }
 }
 
-// MultiStepProgressBar and SuccessBanner composables remain the same...
-@Composable
-private fun MultiStepProgressBar(currentStep: Int, totalSteps: Int, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        for (i in 1..totalSteps) {
-            val color = if (i <= currentStep) Color(0xFF8854F6) else Color(0xFFE0E0E0)
-            Box(modifier = Modifier.weight(1f).fillMaxHeight().background(color))
-        }
-    }
-}
-
+// SuccessBanner composable remains the same...
 @Composable
 private fun SuccessBanner() {
     Card(

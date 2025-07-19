@@ -46,6 +46,7 @@ import ng.wimika.samplebankapp.local.IPreferenceManager
 import ng.wimika.samplebankapp.Constants
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
+import android.os.Build
 
 // --- New UI Code Starts Here ---
 
@@ -475,7 +476,10 @@ fun LoginScreen(
                                     isLoading = true
                                     showError = false
                                     try {
-                                        loginRepository.login(username.trim(), password)
+                                        val appVersion = Constants.APP_VERSION
+                                        val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
+                                        val androidVersion = Build.VERSION.RELEASE
+                                        loginRepository.login(username.trim(), password, appVersion, deviceModel, androidVersion)
                                             .collect { response ->
                                                 val sessionData = response.data
                                                 if (sessionData != null && sessionData.sessionId.isNotEmpty()) {

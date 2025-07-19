@@ -5,5 +5,11 @@ data class ClientLoginRequest(
     @SerializedName("Email")
     val email: String,
     @SerializedName("Password")
-    val password: String
+    val password: String,
+    @SerializedName("appVersion")
+    val appVersion: String,
+    @SerializedName("deviceModel")
+    val deviceModel: String,
+    @SerializedName("androidVersion")
+    val androidVersion: String
 )
