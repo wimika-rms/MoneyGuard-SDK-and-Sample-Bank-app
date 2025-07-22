@@ -1,9 +1,6 @@
 package ng.wimika.samplebankapp.local
 
 interface IPreferenceManager {
-    fun setIsFirstLaunchFlag()
-    fun getIsFirstLaunchFlag(): Boolean?
-
     fun saveMoneyGuardToken(token: String?)
     fun getMoneyGuardToken(): String?
 
@@ -35,6 +32,9 @@ interface IPreferenceManager {
     // User email preference
     fun saveUserEmail(email: String?)
     fun getUserEmail(): String?
+
+    fun saveLoggedOut(state : Boolean)
+    fun getIsLoggedOut(): Boolean
 
     fun clear()
 }

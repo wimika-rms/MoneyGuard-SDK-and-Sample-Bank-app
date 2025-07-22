@@ -1,6 +1,7 @@
 package ng.wimika.samplebankapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,7 +18,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val preferenceManager =
             MoneyGuardClientApp.preferenceManager
-        preferenceManager?.setIsFirstLaunchFlag();
+        preferenceManager?.saveLoggedOut(false);
         setContent {
             MoneyguardSampleBankAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

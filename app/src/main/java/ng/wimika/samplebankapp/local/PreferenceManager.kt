@@ -35,6 +35,8 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         
         // User email preference
         private const val USER_EMAIL = "user_email"
+
+        private const val LOGGED_OUT = "logged_out"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -42,16 +44,7 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
     }
     
     private val gson = Gson()
-
-    override fun setIsFirstLaunchFlag(){
-        sharedPreferences.edit { putBoolean(IS_FIRST_LAUNCH, true) }
-    }
-
-    override fun getIsFirstLaunchFlag(): Boolean? {
-        return sharedPreferences.getBoolean(IS_FIRST_LAUNCH, false)
-    }
-
-
+    
     override fun saveMoneyGuardToken(token: String?) {
         sharedPreferences.edit { putString(MONEY_GUARD_TOKEN, token) }
     }
@@ -147,12 +140,34 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
     }
 
     override fun clear() {
-        sharedPreferences.edit { 
-            // Keep the first launch flag but clear everything else
-            val isFirstLaunch = getIsFirstLaunchFlag() ?: false
-            clear()
-            putBoolean(IS_FIRST_LAUNCH, isFirstLaunch)
-        }
+//        // Loop through all keys in the SharedPreferences
+//        for (key in sharedPreferences.all.keys) {
+//            // If the key is not the one to preserve, remove it
+//            if (key != LOGGED_OUT) {
+//                sharedPreferences.edit().remove(key)
+//            }
+//        }
+//
+//// /Commit the changes
+//        sharedPreferences.edit().apply() // Use apply() for asynchronous saving
+
+        val valueToPreserve = sharedPreferences.getBoolean(LOGGED_OUT, false)
+
+// 2. Clear all preferences and then put the saved value back
+        sharedPreferences.edit().clear().apply {
+            // Only put the value back if it existed
+            if (valueToPreserve != null) {
+                putBoolean(LOGGED_OUT, valueToPreserve)
+            }
+        }.apply()
+        //sharedPreferences.edit().clear().commit()
     }
 
+    override fun saveLoggedOut(state : Boolean) {
+        sharedPreferences.edit().putBoolean(LOGGED_OUT, state).commit()
+    }
+
+    override fun getIsLoggedOut(): Boolean {
+        return sharedPreferences.getBoolean(LOGGED_OUT, false)
+    }
 }

@@ -238,6 +238,8 @@ fun LoginScreen(
         if (status == MoneyGuardAppStatus.Active) {
             // --- Start Credential Check First ---
             isLoading = true
+
+
             try {
                 // Perform credential check inline
                 val credential = Credential(
@@ -246,12 +248,13 @@ fun LoginScreen(
                     domain = "wimika.ng",
                     hashAlgorithm = HashAlgorithm.SHA256
                 )
-                
+
                 sdkService.authentication()?.credentialCheck(token, credential) { result ->
                     if (result is MoneyGuardResult.Success) {
                         val status = result.data.status
                         credentialDialogStatus = "Credential Check - $status"
                         showCredentialDialog = true
+
                         // Don't start location check yet - wait for user to click OK
                     } else {
                         credentialDialogStatus = "Loading..."
@@ -317,26 +320,31 @@ fun LoginScreen(
         }
     }
 
-    // Perform prelaunch checks when screen loads
-    LaunchedEffect(Unit) {
-        try {
-            val startupRisk = moneyGuardPrelaunch?.startup()
-            val risks = startupRisk?.risks?.filter {
-                it.status == RiskStatus.RISK_STATUS_WARN || it.status == RiskStatus.RISK_STATUS_UNSAFE
-            } ?: emptyList()
+    if(preferenceManager?.getIsLoggedOut() == false) {
+        // Perform prelaunch checks when screen loads
+        LaunchedEffect(Unit) {
+            try {
+                val startupRisk = moneyGuardPrelaunch?.startup()
+                val risks = startupRisk?.risks?.filter {
+                    it.status == RiskStatus.RISK_STATUS_WARN || it.status == RiskStatus.RISK_STATUS_UNSAFE
+                } ?: emptyList()
 
-            prelaunchRisks = risks
-            isPrelaunchChecking = false
+                prelaunchRisks = risks
+                isPrelaunchChecking = false
 
-            // Show first risk modal if there are risks
-            if (risks.isNotEmpty()) {
-                showRiskModal = true
-                currentRiskIndex = 0
+                // Show first risk modal if there are risks
+                if (risks.isNotEmpty()) {
+                    showRiskModal = true
+                    currentRiskIndex = 0
+                }
+            } catch (e: Exception) {
+                // If prelaunch check fails, continue with login
+                isPrelaunchChecking = false
             }
-        } catch (e: Exception) {
-            // If prelaunch check fails, continue with login
-            isPrelaunchChecking = false
         }
+    }
+    else{
+        //preferenceManager?.saveLoggedOut(false)
     }
 
     // Handle risk modal navigation
@@ -491,6 +499,7 @@ fun LoginScreen(
                                                     preferenceManager?.saveUserEmail(username.trim())
                                                     // Reset suspicious login flag on new successful login
                                                     preferenceManager?.saveSuspiciousLoginStatus(false)
+                                                    //preferenceManager?.saveLoggedOut(false)
                                                     
                                                     // Register with MoneyGuard
                                                     registerWithMoneyguard(
@@ -603,9 +612,9 @@ fun LoginScreen(
     }
 
     val preferenceManagerForPrelaunch = MoneyGuardClientApp.preferenceManager
-    if(preferenceManagerForPrelaunch?.getIsFirstLaunchFlag() == true) {
+    if(preferenceManagerForPrelaunch?.getIsLoggedOut() == false) {
         //Prelaunch checking overlay
-        if (isPrelaunchChecking) {
+        if (isPrelaunchChecking && showRiskModal) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -656,6 +665,9 @@ fun LoginScreen(
                 )
             }
         }
+    }
+    else{
+
     }
 
     @Preview(showBackground = true, widthDp = 375, heightDp = 812)

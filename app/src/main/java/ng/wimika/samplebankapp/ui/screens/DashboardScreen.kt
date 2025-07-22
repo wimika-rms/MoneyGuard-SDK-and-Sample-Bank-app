@@ -89,7 +89,9 @@ fun DashboardScreen(
                 OutlinedButton(
                     onClick = {
                         // Clear all preferences before logging out
+                        preferenceManager?.saveLoggedOut(true)
                         preferenceManager?.clear()
+
                         onLogout()
                     },
                     modifier = Modifier

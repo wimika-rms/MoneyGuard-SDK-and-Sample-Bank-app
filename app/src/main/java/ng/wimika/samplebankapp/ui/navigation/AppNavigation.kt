@@ -165,7 +165,7 @@ fun AppNavigation() {
         Screen.DownloadMoneyGuard -> {
             DownloadMoneyGuardScreen(
                 onDownloadComplete = {
-                    currentScreen = Screen.Dashboard
+                    currentScreen = Screen.Loginin
                 }
             )
         }

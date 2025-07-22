@@ -4,13 +4,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,7 +29,9 @@ fun DownloadMoneyGuardScreen(
     onDownloadComplete: () -> Unit = {}
 ) {
     val sdkService = MoneyGuardClientApp.sdkService
+    val preferenceManager = MoneyGuardClientApp.preferenceManager
     val coroutineScope = rememberCoroutineScope()
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold { paddingValues ->
         Box(
@@ -75,7 +77,7 @@ fun DownloadMoneyGuardScreen(
                     onClick = {
                         coroutineScope.launch {
                             sdkService?.utility()?.launchAppInstallation()
-                            onDownloadComplete()
+                            showLogoutDialog = true
                         }
                     },
                     modifier = Modifier
@@ -105,4 +107,36 @@ fun DownloadMoneyGuardScreen(
         }
     }
 
+    // Logout Dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Prevent dismissing by clicking outside */ },
+            title = { 
+                Text(
+                    text = "MoneyGuard Download Complete",
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            text = { 
+                Text(
+                    "You'll need to login again to enable MoneyGuard."
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Clear all preferences before logging out (similar to DashboardScreen)
+                        preferenceManager?.saveLoggedOut(true)
+                        preferenceManager?.clear()
+                        
+                        showLogoutDialog = false
+                        onDownloadComplete()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8854F6))
+                ) {
+                    Text("OK", color = Color.White)
+                }
+            }
+        )
+    }
 } 
