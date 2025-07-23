@@ -1,10 +1,8 @@
 package ng.wimika.samplebankapp.ui.screens.claims
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,24 +10,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import ng.wimika.moneyguard_sdk.services.claims.datasource.model.ClaimStatus
-import ng.wimika.samplebankapp.R
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.utils.CurrencyFormatter
 import ng.wimika.samplebankapp.utils.DateUtils
-import ng.wimika.samplebankapp.utils.FileUtils
 import ng.wimika.samplebankapp.ui.theme.SabiBankColors
-import java.util.Date
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,22 +29,19 @@ fun ClaimsDetailsScreen(
 ) {
     val context = LocalContext.current
     
-    // Get SDK services
-    val moneyGuardClaim = ng.wimika.samplebankapp.MoneyGuardClientApp.sdkService?.claim()
-    val preferenceManager = ng.wimika.samplebankapp.MoneyGuardClientApp.preferenceManager
+    val moneyGuardClaim = MoneyGuardClientApp.sdkService?.claim()
+    val preferenceManager = MoneyGuardClientApp.preferenceManager
     
-    // State for loading detailed claim information
     var detailsState by remember {
         mutableStateOf(
             ClaimsDetailsState(
-                claim = null, // Start with no claim data
-                isLoading = true, // Start loading immediately
+                claim = null,
+                isLoading = true,
                 errorMessage = null
             )
         )
     }
     
-    // Load detailed claim information on composition
     LaunchedEffect(claimId) {
         val token = preferenceManager?.getMoneyGuardToken() ?: ""
         if (token.isBlank()) {
@@ -113,7 +100,6 @@ fun ClaimsDetailsScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        // Show loading indicator
         if (detailsState.isLoading) {
             Box(
                 modifier = Modifier
@@ -126,7 +112,6 @@ fun ClaimsDetailsScreen(
             return@Scaffold
         }
         
-        // Show error message
         detailsState.errorMessage?.let { error ->
             Box(
                 modifier = Modifier
@@ -183,10 +168,7 @@ fun ClaimsDetailsScreen(
             return@Scaffold
         }
         
-        // Show main content only when we have claim data
         if (currentClaim == null) {
-            // This shouldn't happen if loading and error states are handled correctly,
-            // but adding as a safety net
             return@Scaffold
         }
         
@@ -198,7 +180,6 @@ fun ClaimsDetailsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Claim Header Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -232,13 +213,11 @@ fun ClaimsDetailsScreen(
                     )
 
 
-                    currentClaim?.natureOfIncident?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
+                    Text(
+                        text = currentClaim.natureOfIncident,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
             }
 
@@ -262,7 +241,7 @@ fun ClaimsDetailsScreen(
                     )
 
 
-                    currentClaim?.account?.let {
+                    currentClaim.account?.let {
                         DetailRow(
                             label = "Account Number",
                             value = it,
@@ -272,7 +251,6 @@ fun ClaimsDetailsScreen(
                 }
             }
 
-            // Incident Details
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -290,38 +268,30 @@ fun ClaimsDetailsScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    
-                    currentClaim?.natureOfIncident?.let {
-                        DetailRow(
-                            label = "Incident Type",
-                            value = it,
-                            icon = Icons.Default.Report
-                        )
-                    }
-                    
-                    currentClaim?.lossAmount?.let {
-                        DetailRow(
-                            label = "Loss Amount",
-                            value = CurrencyFormatter.format(it),
-                            icon = Icons.Default.AttachMoney
-                        )
-                    }
-                    
-                    currentClaim?.lossDate?.let {
-                        DetailRow(
-                            label = "Loss Date",
-                            value = it/*DateUtils.formatDate(it)*/,
-                            icon = Icons.Default.CalendarToday
-                        )
-                    }
-                    
-                    currentClaim?.reportDate?.let {
-                        DetailRow(
-                            label = "Submission Date",
-                            value = it/*DateUtils.formatDate(it)*/,
-                            icon = Icons.Default.Schedule
-                        )
-                    }
+
+                    DetailRow(
+                        label = "Incident Type",
+                        value = currentClaim.natureOfIncident,
+                        icon = Icons.Default.Report
+                    )
+
+                    DetailRow(
+                        label = "Loss Amount",
+                        value = CurrencyFormatter.format(currentClaim.lossAmount),
+                        icon = Icons.Default.AttachMoney
+                    )
+
+                    DetailRow(
+                        label = "Loss Date",
+                        value = DateUtils.formatDate(currentClaim.lossDate),
+                        icon = Icons.Default.CalendarToday
+                    )
+
+                    DetailRow(
+                        label = "Submission Date",
+                        value = DateUtils.formatDate(currentClaim.reportDate),
+                        icon = Icons.Default.Schedule
+                    )
                 }
             }
 
@@ -373,229 +343,6 @@ fun ClaimsDetailsScreen(
                 }
             }
 
-            // Attachments
-//            currentClaim?.attachments?.let { attachments ->
-//                if (attachments.isNotEmpty()) {
-//                    Card(
-//                        modifier = Modifier.fillMaxWidth(),
-//                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-//                        colors = CardDefaults.cardColors(
-//                            containerColor = MaterialTheme.colorScheme.surface
-//                        )
-//                    ) {
-//                        Column(
-//                            modifier = Modifier.padding(16.dp),
-//                            verticalArrangement = Arrangement.spacedBy(12.dp)
-//                        ) {
-//                            Row(
-//                                verticalAlignment = Alignment.CenterVertically,
-//                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-//                            ) {
-//                                Icon(
-//                                    imageVector = Icons.Default.Attachment,
-//                                    contentDescription = "Attachments",
-//                                    tint = MaterialTheme.colorScheme.primary
-//                                )
-//                                Text(
-//                                    text = "Attachments (${attachments.size})",
-//                                    style = MaterialTheme.typography.titleMedium,
-//                                    fontWeight = FontWeight.Bold,
-//                                    color = MaterialTheme.colorScheme.onSurface
-//                                )
-//                            }
-//
-//                            Row(
-//                                modifier = Modifier
-//                                    .fillMaxWidth()
-//                                    .horizontalScroll(rememberScrollState()),
-//                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-//                            ) {
-//                                attachments.forEachIndexed { index, uri ->
-//                                    Card(
-//                                        modifier = Modifier
-//                                            .size(120.dp),
-//                                        shape = RoundedCornerShape(12.dp),
-//                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-//                                    ) {
-//                                        val isImage = FileUtils.isFileAnImage(context, uri)
-//
-//                                        if (isImage) {
-//                                            AsyncImage(
-//                                                model = ImageRequest.Builder(context)
-//                                                    .data(uri)
-//                                                    .crossfade(true)
-//                                                    .build(),
-//                                                contentDescription = "Attachment $index",
-//                                                modifier = Modifier
-//                                                    .fillMaxSize()
-//                                                    .clip(RoundedCornerShape(12.dp)),
-//                                                contentScale = ContentScale.Crop
-//                                            )
-//                                        } else {
-//                                            Box(
-//                                                modifier = Modifier
-//                                                    .fillMaxSize()
-//                                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-//                                                contentAlignment = Alignment.Center
-//                                            ) {
-//                                                Column(
-//                                                    horizontalAlignment = Alignment.CenterHorizontally,
-//                                                    verticalArrangement = Arrangement.Center
-//                                                ) {
-//                                                    Icon(
-//                                                        painter = when {
-//                                                            FileUtils.isFileAVideo(context, uri) -> painterResource(id = R.drawable.ic_video)
-//                                                            FileUtils.isFileAnAudio(context, uri) -> painterResource(id = R.drawable.ic_sound)
-//                                                            else -> painterResource(id = R.drawable.ic_file)
-//                                                        },
-//                                                        contentDescription = "File type",
-//                                                        modifier = Modifier.size(40.dp),
-//                                                        tint = SabiBankColors.Gray600
-//                                                    )
-//                                                    Spacer(modifier = Modifier.height(8.dp))
-//                                                    Text(
-//                                                        text = when {
-//                                                            FileUtils.isFileAVideo(context, uri) -> "Video"
-//                                                            FileUtils.isFileAnAudio(context, uri) -> "Audio"
-//                                                            else -> "Document"
-//                                                        },
-//                                                        style = MaterialTheme.typography.bodySmall,
-//                                                        color = SabiBankColors.Gray600
-//                                                    )
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//
-//            // Status Timeline
-//            Card(
-//                modifier = Modifier.fillMaxWidth(),
-//                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-//                colors = CardDefaults.cardColors(
-//                    containerColor = MaterialTheme.colorScheme.surface
-//                )
-//            ) {
-//                Column(
-//                    modifier = Modifier.padding(16.dp),
-//                    verticalArrangement = Arrangement.spacedBy(12.dp)
-//                ) {
-//                    Row(
-//                        verticalAlignment = Alignment.CenterVertically,
-//                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-//                    ) {
-//                        Icon(
-//                            imageVector = Icons.Default.Timeline,
-//                            contentDescription = "Timeline",
-//                            tint = MaterialTheme.colorScheme.primary
-//                        )
-//                        Text(
-//                            text = "Status Timeline",
-//                            style = MaterialTheme.typography.titleMedium,
-//                            fontWeight = FontWeight.Bold,
-//                            color = MaterialTheme.colorScheme.onSurface
-//                        )
-//                    }
-//
-//                    currentClaim?.status?.let { status ->
-//                        StatusTimelineItem(
-//                            title = "Claim Submitted",
-//                            date = currentClaim?.submissionDate,
-//                            isCompleted = true,
-//                            isActive = status == ClaimStatus.PENDING
-//                        )
-//
-//                        StatusTimelineItem(
-//                            title = "Under Review",
-//                            date = if (status != ClaimStatus.PENDING) currentClaim?.submissionDate else null,
-//                            isCompleted = status != ClaimStatus.PENDING,
-//                            isActive = status == ClaimStatus.UNDER_REVIEW
-//                        )
-//
-//                        when (status) {
-//                            ClaimStatus.APPROVED, ClaimStatus.PAID -> {
-//                                StatusTimelineItem(
-//                                    title = "Approved",
-//                                    date = currentClaim?.submissionDate, // In real app, this would be separate date
-//                                    isCompleted = true,
-//                                    isActive = status == ClaimStatus.APPROVED
-//                                )
-//
-//                                if (status == ClaimStatus.PAID) {
-//                                    StatusTimelineItem(
-//                                        title = "Payment Processed",
-//                                        date = currentClaim?.submissionDate, // In real app, this would be separate date
-//                                        isCompleted = true,
-//                                        isActive = true
-//                                    )
-//                                }
-//                            }
-//                            ClaimStatus.REJECTED -> {
-//                                StatusTimelineItem(
-//                                    title = "Rejected",
-//                                    date = currentClaim?.submissionDate, // In real app, this would be separate date
-//                                    isCompleted = true,
-//                                    isActive = true
-//                                )
-//                            }
-//                            else -> {
-//                                StatusTimelineItem(
-//                                    title = "Decision Pending",
-//                                    date = null,
-//                                    isCompleted = false,
-//                                    isActive = false
-//                                )
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//
-//            // Response Message (if any)
-//            currentClaim?.?.let { message ->
-//                Card(
-//                    modifier = Modifier.fillMaxWidth(),
-//                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-//                    colors = CardDefaults.cardColors(
-//                        containerColor = when (currentClaim?.status) {
-//                            ClaimStatus.APPROVED, ClaimStatus.PAID -> SabiBankColors.SuccessLight
-//                            ClaimStatus.REJECTED -> SabiBankColors.ErrorLight
-//                            else -> MaterialTheme.colorScheme.surfaceVariant
-//                        }
-//                    )
-//                ) {
-//                    Column(
-//                        modifier = Modifier.padding(16.dp),
-//                        verticalArrangement = Arrangement.spacedBy(8.dp)
-//                    ) {
-//                        Text(
-//                            text = "Response from Claims Team",
-//                            style = MaterialTheme.typography.titleMedium,
-//                            fontWeight = FontWeight.Bold,
-//                            color = when (currentClaim?.status) {
-//                                ClaimStatus.APPROVED, ClaimStatus.PAID -> SabiBankColors.Success
-//                                ClaimStatus.REJECTED -> SabiBankColors.Error
-//                                else -> MaterialTheme.colorScheme.onSurfaceVariant
-//                            }
-//                        )
-//                        Text(
-//                            text = message,
-//                            style = MaterialTheme.typography.bodyMedium,
-//                            color = when (currentClaim?.status) {
-//                                ClaimStatus.APPROVED, ClaimStatus.PAID -> SabiBankColors.Success
-//                                ClaimStatus.REJECTED -> SabiBankColors.Error
-//                                else -> MaterialTheme.colorScheme.onSurfaceVariant
-//                            }
-//                        )
-//                    }
-//                }
-//            }
-
             // Bottom spacing for FAB
             Spacer(modifier = Modifier.height(80.dp))
         }
@@ -636,70 +383,3 @@ fun DetailRow(
         }
     }
 }
-
-@Composable
-fun StatusTimelineItem(
-    title: String,
-    date: Date?,
-    isCompleted: Boolean,
-    isActive: Boolean
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Status indicator
-        Box(
-            modifier = Modifier
-                .size(16.dp)
-                .background(
-                    color = when {
-                        isCompleted -> MaterialTheme.colorScheme.primary
-                        isActive -> MaterialTheme.colorScheme.secondary
-                        else -> SabiBankColors.Gray300
-                    },
-                    shape = RoundedCornerShape(50)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isCompleted) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Completed",
-                    modifier = Modifier.size(10.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-        
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                color = when {
-                    isCompleted || isActive -> MaterialTheme.colorScheme.onSurface
-                    else -> SabiBankColors.TextSecondary
-                }
-            )
-            date?.let {
-                Text(
-                    text = DateUtils.formatDate(it),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SabiBankColors.TextSecondary
-                )
-            } ?: run {
-                if (!isCompleted) {
-                    Text(
-                        text = "Pending",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SabiBankColors.TextSecondary
-                    )
-                }
-            }
-        }
-    }
-} 

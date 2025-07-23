@@ -544,7 +544,7 @@ fun ClaimListItem(
                         color = SabiBankColors.TextSecondary
                     )
                     Text(
-                        text = claim.lossDate,
+                        text = DateUtils.formatDate(claim.lossDate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -556,7 +556,7 @@ fun ClaimListItem(
                         color = SabiBankColors.TextSecondary
                     )
                     Text(
-                        text = claim.reportDate,
+                        text = DateUtils.formatDate(claim.reportDate),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )

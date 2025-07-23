@@ -7,7 +7,6 @@ import ng.wimika.moneyguard_sdk.services.moneyguard_policy.models.BankAccount
 import java.util.Date
 
 
-// State for SubmitClaimScreen
 data class SubmitClaimState(
     val accounts: List<BankAccount> = emptyList(),
     val selectedAccount: BankAccount? = null,
@@ -32,7 +31,6 @@ data class SubmitClaimState(
                 !isLoading
 }
 
-// Events for SubmitClaimScreen
 sealed class SubmitClaimEvent {
     data class AccountSelected(val account: BankAccount) : SubmitClaimEvent()
     data class NameOfIncidentChanged(val incidentName: String) : SubmitClaimEvent()
@@ -47,7 +45,6 @@ sealed class SubmitClaimEvent {
     object SubmitClaim : SubmitClaimEvent()
 }
 
-// State for ClaimsListScreen
 data class ClaimsListState(
     val claims: List<ClaimResponse> = emptyList(),
     val isLoading: Boolean = false,
@@ -55,14 +52,13 @@ data class ClaimsListState(
     val status: ClaimStatus? = null // Filter by status
 )
 
-// Events for ClaimsListScreen
+
 sealed class ClaimsListEvent {
     object LoadClaims : ClaimsListEvent()
     object RefreshClaims : ClaimsListEvent()
     data class FilterByStatus(val status: ClaimStatus?) : ClaimsListEvent()
 }
 
-// State for ClaimsDetailsScreen  
 data class ClaimsDetailsState(
     val claim: ClaimResponse? = null,
     val isLoading: Boolean = false,
