@@ -37,6 +37,10 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         private const val USER_EMAIL = "user_email"
 
         private const val LOGGED_OUT = "logged_out"
+        
+        // App lifecycle constants for security
+        private const val APP_STARTED = "app_started"
+        private const val APP_PROPERLY_CLOSED = "app_properly_closed"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -137,6 +141,52 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
 
     override fun getUserEmail(): String? {
         return sharedPreferences.getString(USER_EMAIL, null)
+    }
+
+    // App lifecycle management for security
+    override fun markAppStarted() {
+        sharedPreferences.edit { 
+            putBoolean(APP_STARTED, true)
+            putBoolean(APP_PROPERLY_CLOSED, false)
+        }
+    }
+
+    override fun markAppProperlyClosed() {
+        sharedPreferences.edit { 
+            putBoolean(APP_PROPERLY_CLOSED, true)
+            putBoolean(APP_STARTED, false)
+        }
+    }
+
+    override fun wasAppForceClosedPreviously(): Boolean {
+        val wasStarted = sharedPreferences.getBoolean(APP_STARTED, false)
+        val wasProperlyClosed = sharedPreferences.getBoolean(APP_PROPERLY_CLOSED, false)
+        
+        // If app was started but not properly closed, it was force-closed
+        return wasStarted && !wasProperlyClosed
+    }
+
+    override fun clearAllOnAppClose() {
+        // Mark app as properly closed before clearing
+        markAppProperlyClosed()
+        
+        // Clear all preferences except the lifecycle flags (we need them for force-close detection)
+        val editor = sharedPreferences.edit()
+        
+        // Preserve only the lifecycle flags
+        val wasStarted = sharedPreferences.getBoolean(APP_STARTED, false)
+        val wasProperlyClosed = sharedPreferences.getBoolean(APP_PROPERLY_CLOSED, false)
+        
+        // Clear everything
+        editor.clear()
+        
+        // Restore lifecycle flags
+        editor.putBoolean(APP_STARTED, wasStarted)
+        editor.putBoolean(APP_PROPERLY_CLOSED, wasProperlyClosed)
+        
+        editor.apply()
+        
+        android.util.Log.d("PreferenceManager", "All preferences cleared on app close")
     }
 
     override fun clear() {
