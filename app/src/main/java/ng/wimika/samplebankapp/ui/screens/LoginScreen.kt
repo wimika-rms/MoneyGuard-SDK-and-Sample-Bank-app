@@ -36,6 +36,7 @@ import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.C
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm
 import ng.wimika.samplebankapp.R // Make sure this import points to your project's R file
 import ng.wimika.samplebankapp.loginRepo.LoginRepositoryImpl
+import ng.wimika.samplebankapp.ui.theme.SabiBankColors
 import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
 import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
 import ng.wimika.moneyguard_sdk_commons.types.RiskStatus
@@ -49,15 +50,6 @@ import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
 import android.os.Build
 
 // --- New UI Code Starts Here ---
-
-// Define colors from the new design for easy reuse
-private object SabiBankColors {
-    val OrangePrimary = Color(0xFFD95F29)
-    val OrangeDark = Color(0xFFC05425) // A darker shade for text fields
-    val White = Color.White
-    val TextPrimaryOrange = Color(0xFFD95F29)
-    val TextOnOrange = Color.White
-}
 
 // A reusable custom TextField composable to match the design
 @OptIn(ExperimentalMaterial3Api::class)
@@ -529,8 +521,8 @@ fun LoginScreen(
                             .height(56.dp),
                         shape = RoundedCornerShape(50), // Pill shape
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = SabiBankColors.White,
-                            contentColor = SabiBankColors.TextPrimaryOrange,
+                                                    containerColor = SabiBankColors.White,
+                        contentColor = SabiBankColors.OrangePrimary,
                             disabledContainerColor = SabiBankColors.White.copy(alpha = 0.5f)
                         ),
                         enabled = !isLoading && username.isNotBlank() && password.isNotBlank()
@@ -538,7 +530,7 @@ fun LoginScreen(
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(28.dp),
-                                color = SabiBankColors.TextPrimaryOrange,
+                                color = SabiBankColors.OrangePrimary,
                                 strokeWidth = 3.dp
                             )
                         } else {
