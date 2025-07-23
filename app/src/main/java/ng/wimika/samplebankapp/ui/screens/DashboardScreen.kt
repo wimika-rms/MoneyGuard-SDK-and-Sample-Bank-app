@@ -32,7 +32,8 @@ fun DashboardScreen(
     onDownloadMoneyGuard: () -> Unit,
     onCheckDebitClick: () -> Unit = {},
     onEnrollTypingPattern: () -> Unit = {},
-    onVerifyTypingPattern: () -> Unit = {}
+    onVerifyTypingPattern: () -> Unit = {},
+    onNavigateToClaims: () -> Unit = {}
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
@@ -80,6 +81,7 @@ fun DashboardScreen(
                 ActionsGrid(onCheckDebitClick = onCheckDebitClick,
                     onEnrollTypingPattern = onEnrollTypingPattern,
                     onVerifyTypingPattern = onVerifyTypingPattern,
+                    onNavigateToClaims = onNavigateToClaims,
                     moneyguardStatus = moneyguardStatus)
 
                 // Spacer to push the logout button to the bottom
@@ -258,6 +260,7 @@ private fun PagerIndicator(pageCount: Int, currentPage: Int) {
 private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
                         onEnrollTypingPattern: () -> Unit = {},
                         onVerifyTypingPattern: () -> Unit = {},
+                        onNavigateToClaims: () -> Unit = {},
                         moneyguardStatus: MoneyGuardAppStatus?) {
     val showTypingPatternActions = moneyguardStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled ||
             moneyguardStatus == MoneyGuardAppStatus.Active
@@ -294,6 +297,20 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
                 // Add an empty placeholder to maintain grid alignment
                 Box(modifier = Modifier.weight(1f))
             }
+        }
+
+        // Second row with Claims button
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ActionCard(
+                icon = Icons.Default.Receipt,
+                text = "Claims",
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToClaims
+            )
+            
+            // Add empty placeholders to maintain grid alignment
+            Box(modifier = Modifier.weight(1f))
+            Box(modifier = Modifier.weight(1f))
         }
 
     }

@@ -14,6 +14,7 @@ import ng.wimika.samplebankapp.ui.screens.DownloadMoneyGuardScreen
 import ng.wimika.samplebankapp.ui.screens.EnrollmentIntroScreen
 import ng.wimika.samplebankapp.ui.screens.TypingPatternScreen
 import ng.wimika.samplebankapp.ui.screens.TypingPatternVerificationScreen
+import ng.wimika.samplebankapp.ui.screens.claims.*
 
 sealed class Screen {
     data object Login : Screen()
@@ -30,6 +31,10 @@ sealed class Screen {
     data object TypingPatternEnrollment : Screen()
     // Modified to carry a callback
     data class TypingPatternVerification(val onResult: (Boolean) -> Unit) : Screen()
+    // Claims screens
+    data object ClaimsList : Screen()
+    data object SubmitClaim : Screen()
+    data class ClaimsDetails(val claimId: Int) : Screen()
 }
 
 @Composable
@@ -90,6 +95,9 @@ fun AppNavigation() {
                         // Simply return to dashboard regardless of result from here
                         currentScreen = Screen.Dashboard
                     })
+                },
+                onNavigateToClaims = {
+                    currentScreen = Screen.ClaimsList
                 }
             )
         }
@@ -191,6 +199,34 @@ fun AppNavigation() {
             TypingPatternScreen(
                 onBack = { currentScreen = Screen.Dashboard },
                 onRegistrationComplete = { currentScreen = Screen.Dashboard }
+            )
+        }
+        Screen.ClaimsList -> {
+            ClaimsListScreen(
+                onBackPressed = { 
+                    currentScreen = Screen.Dashboard 
+                },
+                onClaimClick = { claimId ->
+                    currentScreen = Screen.ClaimsDetails(claimId)
+                },
+                onSubmitNewClaim = {
+                    currentScreen = Screen.SubmitClaim
+                }
+            )
+        }
+        Screen.SubmitClaim -> {
+            SubmitClaimScreen(
+                onBackPressed = {
+                    currentScreen = Screen.ClaimsList
+                }
+            )
+        }
+        is Screen.ClaimsDetails -> {
+            ClaimsDetailsScreen(
+                claimId = screen.claimId,
+                onBackPressed = {
+                    currentScreen = Screen.ClaimsList
+                }
             )
         }
     }
