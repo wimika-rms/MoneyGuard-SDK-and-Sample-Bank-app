@@ -218,15 +218,16 @@ fun TypingPatternVerificationScreen(
                             addDebugLog("Token available, proceeding with verification")
                             val result = typingProfileService.matchTypingProfile(userInput, token)
                             Log.d(VERIFY_LOG_TAG, "Verification result: $result")
-                            addDebugLog("Verification result: ${result.message}")
+                            addDebugLog("Verification result: ${result}")
 
                             val isSuccess = result.success && result.matched
-                            if (isSuccess) {
-                                typingProfileService.stopService()
-                                addDebugLog("Verification successful, service stopped")
-                            } else {
-                                addDebugLog("Verification failed: ${result.message}")
-                            }
+//                            if (isSuccess) {
+//                               // addDebugLog("Verification successful, service stopped ${result}")
+//                            } else {
+//                                //addDebugLog("Verification failed: ${result.message}")
+//                            }
+
+                            typingProfileService.stopService()
                             dialogState = VerificationDialogState.Shown(isSuccess, result.message)
 
                         } catch (e: Exception) {

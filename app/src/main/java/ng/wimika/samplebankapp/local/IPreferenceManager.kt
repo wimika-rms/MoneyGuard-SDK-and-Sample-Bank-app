@@ -36,6 +36,12 @@ interface IPreferenceManager {
     fun saveLoggedOut(state : Boolean)
     fun getIsLoggedOut(): Boolean
 
+    // App lifecycle management for security
+    fun markAppStarted()
+    fun markAppProperlyClosed()
+    fun wasAppForceClosedPreviously(): Boolean
+    fun clearAllOnAppClose()
+
     fun clear()
 }
 
