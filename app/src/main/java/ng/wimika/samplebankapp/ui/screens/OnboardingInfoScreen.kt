@@ -89,19 +89,24 @@ fun OnboardingInfoScreen(
     
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 48.dp, start = 10.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "MoneyGuard Info",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.Black
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.Black
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Spacer(modifier = Modifier.weight(1f))
-                Spacer(modifier = Modifier.width(48.dp)) // To balance the back arrow
-            }
+            )
         },
         containerColor = Color.White
     ) { innerPadding ->

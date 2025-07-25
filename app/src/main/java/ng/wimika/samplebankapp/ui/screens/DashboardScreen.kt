@@ -1,5 +1,6 @@
 package ng.wimika.samplebankapp.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -264,8 +265,7 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
                         onVerifyTypingPattern: () -> Unit = {},
                         onNavigateToClaims: () -> Unit = {},
                         moneyguardStatus: MoneyGuardAppStatus?) {
-    val showTypingPatternActions = moneyguardStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled ||
-            moneyguardStatus == MoneyGuardAppStatus.Active
+    val showTypingPatternActions = moneyguardStatus == MoneyGuardAppStatus.Active
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -302,17 +302,19 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
         }
 
         // Second row with Claims button
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ActionCard(
-                icon = Icons.Default.Receipt,
-                text = "Claims",
-                modifier = Modifier.weight(1f),
-                onClick = onNavigateToClaims
-            )
-            
-            // Add empty placeholders to maintain grid alignment
-            Box(modifier = Modifier.weight(1f))
-            Box(modifier = Modifier.weight(1f))
+        if (showTypingPatternActions) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                ActionCard(
+                    icon = Icons.Default.Receipt,
+                    text = "Claims",
+                    modifier = Modifier.weight(1f),
+                    onClick = onNavigateToClaims
+                )
+
+                // Add empty placeholders to maintain grid alignment
+                Box(modifier = Modifier.weight(1f))
+                Box(modifier = Modifier.weight(1f))
+            }
         }
 
     }
@@ -371,19 +373,22 @@ private fun RiskScoreCard() {
         if (sdkService != null && !token.isNullOrEmpty()) {
             while (true) {
                 try {
+                    Log.d("RiskProfile", "Checking risk profile")
                     val riskProfile = sdkService.riskProfile()?.getRiskProfile()
+                    Log.d("RiskProfile", "Risk profile fetched: $riskProfile")
                     val currentRiskScore = riskProfile?.sumOf { it.score.value.toInt() } ?: 0
                     
                     if (currentRiskScore > 0) {
                         riskScore = currentRiskScore
                         isLoading = false
-                        break // Exit the loop once we get a valid score
+                       // break // Exit the loop once we get a valid score
                     }
                     
                     // Wait 3 seconds before next check
                     kotlinx.coroutines.delay(3000)
                 } catch (e: Exception) {
                     // On error, wait 3 seconds before retrying
+                    Log.e("RiskProfile", "Error fetching risk score: ${e.toString()}")
                     kotlinx.coroutines.delay(3000)
                 }
             }

@@ -172,6 +172,9 @@ fun AppNavigation() {
         }
         Screen.DownloadMoneyGuard -> {
             DownloadMoneyGuardScreen(
+                onBack = {
+                    currentScreen = Screen.Dashboard
+                },
                 onDownloadComplete = {
                     currentScreen = Screen.Login
                 }
@@ -190,6 +193,9 @@ fun AppNavigation() {
         }
         Screen.EnrollmentIntro -> {
             EnrollmentIntroScreen(
+                onBack = {
+                    currentScreen = Screen.Dashboard
+                },
                 onStartCapture = {
                     currentScreen = Screen.TypingPatternEnrollment
                 }

@@ -10,6 +10,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,8 +51,17 @@ import ng.wimika.samplebankapp.Constants
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
 import android.os.Build
+import java.security.MessageDigest
 
 // --- New UI Code Starts Here ---
+
+/**
+ * Hash a string using SHA-256
+ */
+fun sha256Hash(input: String): String {
+    val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+    return bytes.joinToString("") { "%02x".format(it) }
+}
 
 // A reusable custom TextField composable to match the design
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +71,8 @@ fun SabiTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     keyboardOptions: KeyboardOptions,
-    visualTransformation: VisualTransformation = VisualTransformation.None
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     TextField(
         value = value,
@@ -79,7 +92,8 @@ fun SabiTextField(
         textStyle = TextStyle(color = SabiBankColors.TextOnOrange, fontSize = 16.sp),
         singleLine = true,
         keyboardOptions = keyboardOptions,
-        visualTransformation = visualTransformation
+        visualTransformation = visualTransformation,
+        trailingIcon = trailingIcon
     )
 }
 
@@ -172,7 +186,8 @@ fun LoginScreen(
 ) {
     // --- All existing state and logic is preserved ---
     var username by remember { mutableStateOf("") } // Pre-filled from screenshot
-    var password by remember { mutableStateOf("********") } // Pre-filled from screenshot
+    var password by remember { mutableStateOf("") } // Pre-filled from screenshot
+    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var debugLogsEnabled by remember { mutableStateOf(preferenceManager?.isDebugLogsEnabled() ?: false) }
@@ -234,9 +249,11 @@ fun LoginScreen(
 
             try {
                 // Perform credential check inline
+                val passwordLast3Chars = password.takeLast(3)
+                val hashedPasswordLast3 = sha256Hash(passwordLast3Chars)
                 val credential = Credential(
                     username = username.trim(),
-                    passwordStartingCharactersHash = password.takeLast(3),
+                    passwordStartingCharactersHash = hashedPasswordLast3,
                     domain = "wimika.ng",
                     hashAlgorithm = HashAlgorithm.SHA256
                 )
@@ -419,7 +436,18 @@ fun LoginScreen(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
-                        visualTransformation = PasswordVisualTransformation()
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                passwordVisible = !passwordVisible
+                            }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                    tint = SabiBankColors.TextOnOrange
+                                )
+                            }
+                        }
                     )
 
                     if (showError) {

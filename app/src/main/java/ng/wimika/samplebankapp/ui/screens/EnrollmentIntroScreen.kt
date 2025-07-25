@@ -14,16 +14,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PhonelinkSetup
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,12 +40,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ng.wimika.samplebankapp.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EnrollmentIntroScreen(onStartCapture: () -> Unit) {
+fun EnrollmentIntroScreen(
+    onBack: () -> Unit = {},
+    onStartCapture: () -> Unit
+) {
     // Reusing the purple color from the app's theme for consistency
     val purpleColor = Color(0xFF8854F6)
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Behavioral Capture",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.Black
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.Black
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
@@ -146,5 +175,5 @@ fun EnrollmentIntroScreen(onStartCapture: () -> Unit) {
 @Preview(showBackground = true, device = "id:pixel_4")
 @Composable
 fun EnrollmentIntroScreenPreview() {
-    EnrollmentIntroScreen(onStartCapture = {})
+    EnrollmentIntroScreen(onBack = {}, onStartCapture = {})
 }
