@@ -1,6 +1,10 @@
 package ng.wimika.samplebankapp.ui.navigation
 
 import androidx.compose.runtime.*
+import androidx.compose.material3.*
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import android.util.Log
 import ng.wimika.samplebankapp.ui.screens.DashboardScreen
 import ng.wimika.samplebankapp.ui.screens.LoginScreen
 import ng.wimika.samplebankapp.ui.screens.OnboardingInfoScreen
@@ -15,6 +19,8 @@ import ng.wimika.samplebankapp.ui.screens.EnrollmentIntroScreen
 import ng.wimika.samplebankapp.ui.screens.TypingPatternScreen
 import ng.wimika.samplebankapp.ui.screens.TypingPatternVerificationScreen
 import ng.wimika.samplebankapp.ui.screens.claims.*
+import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
+import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.TrustedDeviceRequest
 
 sealed class Screen {
     data object Login : Screen()
@@ -40,6 +46,12 @@ sealed class Screen {
 @Composable
 fun AppNavigation() {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Login) }
+    var showTrustDeviceDialog by remember { mutableStateOf(false) }
+    var isProcessingTrust by remember { mutableStateOf(false) }
+    var trustResult by remember { mutableStateOf<String?>(null) }
+    
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     
     // Check if user is already logged in
     LaunchedEffect(Unit) {
@@ -51,6 +63,83 @@ fun AppNavigation() {
             currentScreen = Screen.Dashboard
         }
     }
+    
+    // Function to handle device trust after successful verification
+    fun handleSuccessfulVerification() {
+        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 🔐 Starting device trust process after successful verification")
+        scope.launch {
+            isProcessingTrust = true
+            showTrustDeviceDialog = true
+            
+            try {
+                val preferenceManager = ng.wimika.samplebankapp.MoneyGuardClientApp.preferenceManager
+                val sdkService = ng.wimika.samplebankapp.MoneyGuardClientApp.sdkService
+                val token = preferenceManager?.getMoneyGuardToken()
+                val sessionId = preferenceManager?.getBankSessionId()
+                
+                Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Retrieved auth data - Token: ${if (token != null) "Present" else "Missing"}, SessionId: ${if (sessionId != null) "Present" else "Missing"}, SDK: ${if (sdkService != null) "Available" else "Unavailable"}")
+                
+                if (token != null && sessionId != null && sdkService != null) {
+                    // Get the installation ID (device ID) from shared preferences
+                    val sharedPrefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+                    val deviceId = sharedPrefs.getString("device_id", "") ?: ""
+                    
+                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Device details - DeviceId: ${deviceId.take(8)}..., DeviceName: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+                    
+                    val trustedDeviceRequest = TrustedDeviceRequest(
+                        userId = sessionId, // Use session ID as user ID
+                        installationId = deviceId,
+                        deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+                    )
+                    
+                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 📡 Calling trustDevice API...")
+                    sdkService.authentication()?.trustDevice(token, deviceId, trustedDeviceRequest)?.collect { result ->
+                        when (result) {
+                            is MoneyGuardResult.Success -> {
+                                trustResult = "Device trusted successfully! You can now securely access your account on this device."
+                                Log.i("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ✅ Device trust SUCCESSFUL - Device is now trusted")
+                            }
+                            is MoneyGuardResult.Failure -> {
+                                trustResult = "Failed to trust device: ${result.error.message}"
+                                Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Device trust FAILED: ${result.error.message}")
+                            }
+                            is MoneyGuardResult.Loading -> {
+                                Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ⏳ Device trust in progress...")
+                            }
+                        }
+                    }
+                } else {
+                    trustResult = "Error: Missing authentication information"
+                    Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Missing required authentication data")
+                }
+            } catch (e: Exception) {
+                trustResult = "Error trusting device: ${e.message}"
+                Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Exception during device trust: ${e.message}", e)
+            } finally {
+                isProcessingTrust = false
+                Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Device trust process completed")
+            }
+        }
+    }
+    
+    // Function to logout user
+    fun logoutUser() {
+        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 🚪 Starting user logout process")
+        val preferenceManager = ng.wimika.samplebankapp.MoneyGuardClientApp.preferenceManager
+        val sdkService = ng.wimika.samplebankapp.MoneyGuardClientApp.sdkService
+        
+        // Clear all stored data
+        preferenceManager?.saveBankLoginDetails("", "")
+        preferenceManager?.saveMoneyGuardToken("")
+        preferenceManager?.saveMoneyguardUserNames("", "")
+        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Cleared all stored user data")
+        
+        // Call SDK logout
+        sdkService?.authentication()?.logout()
+        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Called SDK logout")
+        
+        Log.i("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ✅ User logout completed - Returning to login screen")
+    }
 
     when (val screen = currentScreen) { // Use 'screen' for smart casting
         Screen.Login -> {
@@ -60,12 +149,16 @@ fun AppNavigation() {
                 },
                 // New navigation action for verification
                 onNavigateToVerification = {
+                    Log.w("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 🔄 Navigating to typing pattern verification screen")
                     currentScreen = Screen.TypingPatternVerification(onResult = { isSuccess ->
                         if (isSuccess) {
-                            // On successful verification, proceed to dashboard
-                            currentScreen = Screen.Dashboard
+                            Log.i("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ✅ Typing pattern verification SUCCESSFUL")
+                            // On successful verification, trust the device
+                            handleSuccessfulVerification()
                         } else {
-                            // On failure, return to the login screen
+                            Log.w("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Typing pattern verification FAILED - Logging out user")
+                            // On failure, logout and return to login screen
+                            logoutUser()
                             currentScreen = Screen.Login
                         }
                     })
@@ -235,5 +328,36 @@ fun AppNavigation() {
                 }
             )
         }
+    }
+    
+    // Trust Device Result Dialog
+    if (showTrustDeviceDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Prevent dismissing by clicking outside */ },
+            title = { 
+                Text(if (isProcessingTrust) "Processing..." else "Device Trust")
+            },
+            text = { 
+                if (isProcessingTrust) {
+                    Text("Trusting this device...")
+                } else {
+                    Text(trustResult ?: "Processing device trust...")
+                }
+            },
+            confirmButton = {
+                if (!isProcessingTrust && trustResult != null) {
+                    Button(onClick = {
+                        showTrustDeviceDialog = false
+                        trustResult = null
+                        // Logout user and return to login
+                        logoutUser()
+                        currentScreen = Screen.Login
+                    }) {
+                        Text("Continue")
+                    }
+                }
+            },
+            dismissButton = null
+        )
     }
 } 

@@ -43,6 +43,7 @@ import ng.wimika.samplebankapp.ui.theme.SabiBankColors
 import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
 import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
 import ng.wimika.moneyguard_sdk_commons.types.RiskStatus
+import ng.wimika.moneyguard_sdk_commons.types.SessionResultFlags
 import ng.wimika.moneyguard_sdk.services.prelaunch.MoneyGuardPrelaunch
 import ng.wimika.moneyguard_sdk.services.utility.models.LocationCheck
 import ng.wimika.samplebankapp.MoneyGuardClientApp // Assuming these imports are correct
@@ -100,10 +101,14 @@ fun SabiTextField(
 suspend fun registerWithMoneyguard(
     sessionId: String,
     preferenceManager: IPreferenceManager?,
-    onRegistrationComplete: () -> Unit // Added completion handler
+    onRegistrationComplete: () -> Unit, // Added completion handler
+    onNavigateToVerification: () -> Unit // Added verification handler
 ) {
+    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Starting MoneyGuard registration with sessionId: ${sessionId.take(8)}...")
     try {
         val sdkService = MoneyGuardClientApp.sdkService
+        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] SDK Service available: ${sdkService != null}")
+        
         sdkService?.authentication()?.register(
             parteBankId = Constants.PARTNER_BANK_ID,
             partnerSessionToken = sessionId
@@ -111,22 +116,37 @@ suspend fun registerWithMoneyguard(
             when (result) {
                 is MoneyGuardResult.Success -> {
                     val sessionResponse = result.data
+                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.Result}, Token present: ${sessionResponse.token.isNotEmpty()}")
+                    
+                    // Check if device is untrusted and requires 2FA
+                    if (sessionResponse.Result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
+                        Log.w("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
+                        onNavigateToVerification() // Navigate to verification screen
+                        return@collect
+                    }
+                    
+                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ✅ Device is trusted - Proceeding with normal flow")
                     if (sessionResponse.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(sessionResponse.token)
                         preferenceManager?.saveMoneyguardUserNames(
                             sessionResponse.userDetails.firstName,
                             sessionResponse.userDetails.lastName
                         )
+                        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Saved MoneyGuard token and user details")
                     }
                     onRegistrationComplete() // Call completion handler
                 }
                 is MoneyGuardResult.Failure -> {
+                    Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ❌ Registration failed: ${result.error.message}")
                     onRegistrationComplete() // Also call on failure to continue flow
                 }
-                is MoneyGuardResult.Loading -> { /* Do nothing */ }
+                is MoneyGuardResult.Loading -> { 
+                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Registration loading...")
+                }
             }
         }
     } catch (e: Exception) {
+        Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ❌ Exception during registration: ${e.message}", e)
         onRegistrationComplete() // Also call on exception
     }
 }
@@ -524,13 +544,18 @@ fun LoginScreen(
                                                     // Register with MoneyGuard
                                                     registerWithMoneyguard(
                                                         sessionData.sessionId,
-                                                        preferenceManager
-                                                    ) {
-                                                        // On successful registration, start the post-login flow
-                                                        scope.launch {
-                                                            handlePostLoginFlow()
+                                                        preferenceManager,
+                                                        onRegistrationComplete = {
+                                                            // On successful registration, start the post-login flow
+                                                            scope.launch {
+                                                                handlePostLoginFlow()
+                                                            }
+                                                        },
+                                                        onNavigateToVerification = {
+                                                            // On untrusted device, navigate to verification
+                                                            onNavigateToVerification()
                                                         }
-                                                    }
+                                                    )
                                                 } else {
                                                     showError = true
                                                     isLoading = false
