@@ -66,7 +66,7 @@ fun AppNavigation() {
     
     // Function to handle device trust after successful verification
     fun handleSuccessfulVerification() {
-        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 🔐 Starting device trust process after successful verification")
+        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 🔐 Starting device trust process after successful verification")
         scope.launch {
             isProcessingTrust = true
             showTrustDeviceDialog = true
@@ -77,14 +77,14 @@ fun AppNavigation() {
                 val token = preferenceManager?.getMoneyGuardToken()
                 val sessionId = preferenceManager?.getBankSessionId()
                 
-                Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Retrieved auth data - Token: ${if (token != null) "Present" else "Missing"}, SessionId: ${if (sessionId != null) "Present" else "Missing"}, SDK: ${if (sdkService != null) "Available" else "Unavailable"}")
+                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Retrieved auth data - Token: ${if (token != null) "Present" else "Missing"}, SessionId: ${if (sessionId != null) "Present" else "Missing"}, SDK: ${if (sdkService != null) "Available" else "Unavailable"}")
                 
                 if (token != null && sessionId != null && sdkService != null) {
                     // Get the installation ID (device ID) from shared preferences
                     val sharedPrefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
                     val deviceId = sharedPrefs.getString("device_id", "") ?: ""
                     
-                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Device details - DeviceId: ${deviceId.take(8)}..., DeviceName: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Device details - DeviceId: ${deviceId.take(8)}..., DeviceName: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
                     
                     val trustedDeviceRequest = TrustedDeviceRequest(
                         userId = sessionId, // Use session ID as user ID
@@ -92,39 +92,39 @@ fun AppNavigation() {
                         deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
                     )
                     
-                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 📡 Calling trustDevice API...")
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 📡 Calling trustDevice API...")
                     sdkService.authentication()?.trustDevice(token, deviceId, trustedDeviceRequest)?.collect { result ->
                         when (result) {
                             is MoneyGuardResult.Success -> {
                                 trustResult = "Device trusted successfully! You can now securely access your account on this device."
-                                Log.i("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ✅ Device trust SUCCESSFUL - Device is now trusted")
+                                Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ Device trust SUCCESSFUL - Device is now trusted")
                             }
                             is MoneyGuardResult.Failure -> {
                                 trustResult = "Failed to trust device: ${result.error.message}"
-                                Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Device trust FAILED: ${result.error.message}")
+                                Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Device trust FAILED: ${result.error.message}")
                             }
                             is MoneyGuardResult.Loading -> {
-                                Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ⏳ Device trust in progress...")
+                                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ⏳ Device trust in progress...")
                             }
                         }
                     }
                 } else {
                     trustResult = "Error: Missing authentication information"
-                    Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Missing required authentication data")
+                    Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Missing required authentication data")
                 }
             } catch (e: Exception) {
                 trustResult = "Error trusting device: ${e.message}"
-                Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Exception during device trust: ${e.message}", e)
+                Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Exception during device trust: ${e.message}", e)
             } finally {
                 isProcessingTrust = false
-                Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Device trust process completed")
+                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Device trust process completed")
             }
         }
     }
     
     // Function to logout user
     fun logoutUser() {
-        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 🚪 Starting user logout process")
+        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 🚪 Starting user logout process")
         val preferenceManager = ng.wimika.samplebankapp.MoneyGuardClientApp.preferenceManager
         val sdkService = ng.wimika.samplebankapp.MoneyGuardClientApp.sdkService
         
@@ -132,13 +132,13 @@ fun AppNavigation() {
         preferenceManager?.saveBankLoginDetails("", "")
         preferenceManager?.saveMoneyGuardToken("")
         preferenceManager?.saveMoneyguardUserNames("", "")
-        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Cleared all stored user data")
+        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Cleared all stored user data")
         
         // Call SDK logout
         sdkService?.authentication()?.logout()
-        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] Called SDK logout")
+        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Called SDK logout")
         
-        Log.i("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ✅ User logout completed - Returning to login screen")
+        Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ User logout completed - Returning to login screen")
     }
 
     when (val screen = currentScreen) { // Use 'screen' for smart casting
@@ -149,14 +149,14 @@ fun AppNavigation() {
                 },
                 // New navigation action for verification
                 onNavigateToVerification = {
-                    Log.w("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] 🔄 Navigating to typing pattern verification screen")
+                    Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 🔄 Navigating to typing pattern verification screen")
                     currentScreen = Screen.TypingPatternVerification(onResult = { isSuccess ->
                         if (isSuccess) {
-                            Log.i("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ✅ Typing pattern verification SUCCESSFUL")
+                            Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ Typing pattern verification SUCCESSFUL")
                             // On successful verification, trust the device
                             handleSuccessfulVerification()
                         } else {
-                            Log.w("TRUSTED_DEVICE_FLOW", "[SampleBankApp|AppNavigation] ❌ Typing pattern verification FAILED - Logging out user")
+                            Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Typing pattern verification FAILED - Logging out user")
                             // On failure, logout and return to login screen
                             logoutUser()
                             currentScreen = Screen.Login

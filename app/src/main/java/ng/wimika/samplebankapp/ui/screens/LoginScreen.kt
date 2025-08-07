@@ -104,10 +104,10 @@ suspend fun registerWithMoneyguard(
     onRegistrationComplete: () -> Unit, // Added completion handler
     onNavigateToVerification: () -> Unit // Added verification handler
 ) {
-    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Starting MoneyGuard registration with sessionId: ${sessionId.take(8)}...")
+    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Starting MoneyGuard registration with sessionId: ${sessionId.take(8)}...")
     try {
         val sdkService = MoneyGuardClientApp.sdkService
-        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] SDK Service available: ${sdkService != null}")
+        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] SDK Service available: ${sdkService != null}")
         
         sdkService?.authentication()?.register(
             parteBankId = Constants.PARTNER_BANK_ID,
@@ -116,37 +116,37 @@ suspend fun registerWithMoneyguard(
             when (result) {
                 is MoneyGuardResult.Success -> {
                     val sessionResponse = result.data
-                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.Result}, Token present: ${sessionResponse.token.isNotEmpty()}")
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.Result}, Token present: ${sessionResponse.token.isNotEmpty()}")
                     
                     // Check if device is untrusted and requires 2FA
                     if (sessionResponse.Result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
-                        Log.w("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
+                        Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
                         onNavigateToVerification() // Navigate to verification screen
                         return@collect
                     }
                     
-                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ✅ Device is trusted - Proceeding with normal flow")
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ✅ Device is trusted - Proceeding with normal flow")
                     if (sessionResponse.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(sessionResponse.token)
                         preferenceManager?.saveMoneyguardUserNames(
                             sessionResponse.userDetails.firstName,
                             sessionResponse.userDetails.lastName
                         )
-                        Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Saved MoneyGuard token and user details")
+                        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Saved MoneyGuard token and user details")
                     }
                     onRegistrationComplete() // Call completion handler
                 }
                 is MoneyGuardResult.Failure -> {
-                    Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ❌ Registration failed: ${result.error.message}")
+                    Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ❌ Registration failed: ${result.error.message}")
                     onRegistrationComplete() // Also call on failure to continue flow
                 }
                 is MoneyGuardResult.Loading -> { 
-                    Log.d("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] Registration loading...")
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration loading...")
                 }
             }
         }
     } catch (e: Exception) {
-        Log.e("TRUSTED_DEVICE_FLOW", "[SampleBankApp|LoginScreen] ❌ Exception during registration: ${e.message}", e)
+        Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ❌ Exception during registration: ${e.message}", e)
         onRegistrationComplete() // Also call on exception
     }
 }
