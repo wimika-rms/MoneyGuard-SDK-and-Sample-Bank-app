@@ -116,10 +116,10 @@ suspend fun registerWithMoneyguard(
             when (result) {
                 is MoneyGuardResult.Success -> {
                     val sessionResponse = result.data
-                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.Result}, Token present: ${sessionResponse.token.isNotEmpty()}")
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.result}, Token present: ${sessionResponse.token.isNotEmpty()}")
                     
                     // Check if device is untrusted and requires 2FA
-                    if (sessionResponse.Result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
+                    if (sessionResponse.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
                         Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
                         onNavigateToVerification() // Navigate to verification screen
                         return@collect
