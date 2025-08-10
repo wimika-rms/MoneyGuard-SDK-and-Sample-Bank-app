@@ -42,7 +42,7 @@ private sealed class VerificationDialogState {
     data class Shown(val isSuccess: Boolean, val message: String) : VerificationDialogState()
 }
 
-private const val VERIFY_LOG_TAG = "typing-pattern-verify"
+private const val VERIFY_LOG_TAG = "MONEYGUARD_LOGGER"
 private const val VERIFY_TYPING_INPUT_ID = 1002 // Use a different ID to avoid conflicts
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -213,7 +213,9 @@ fun TypingPatternVerificationScreen(
                         addDebugLog("Starting typing pattern verification")
                         try {
                             val token = preferenceManager?.getMoneyGuardToken()
+                            Log.d(VERIFY_LOG_TAG, "[SampleBankApp|TypingPatternVerificationScreen] Token: ${token}")
                             if (typingProfileService == null || token.isNullOrEmpty()) {
+
                                 addDebugLog("Error: SDK not initialized.")
                                 Toast.makeText(context, "Error: SDK not initialized.", Toast.LENGTH_SHORT).show()
                                 return@launch
@@ -284,6 +286,7 @@ fun TypingPatternVerificationScreen(
                         scope.launch {
                             addDebugLog("User chose to retry verification")
                             typingProfileService?.resetService()
+                            typingProfileService?.startService(context as Activity, intArrayOf(VERIFY_TYPING_INPUT_ID))
                             userInput = ""
                             editText?.setText("")
                             dialogState = VerificationDialogState.Hidden

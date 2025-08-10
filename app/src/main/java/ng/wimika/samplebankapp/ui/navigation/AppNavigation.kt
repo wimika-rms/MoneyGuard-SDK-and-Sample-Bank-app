@@ -81,8 +81,8 @@ fun AppNavigation() {
                 
                 if (token != null && sessionId != null && sdkService != null) {
                     // Get the installation ID (device ID) from shared preferences
-                    val sharedPrefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-                    val deviceId = sharedPrefs.getString("device_id", "") ?: ""
+
+                    val deviceId = preferenceManager?.getMoneyGuardInstallationId() ?: ""
                     
                     Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Device details - DeviceId: ${deviceId.take(8)}..., DeviceName: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
                     
@@ -92,7 +92,7 @@ fun AppNavigation() {
                         deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
                     )
                     
-                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 📡 Calling trustDevice API...")
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 📡 Calling trustDevice API with deviceId $deviceId...")
                     sdkService.authentication()?.trustDevice(token, deviceId, trustedDeviceRequest)?.collect { result ->
                         when (result) {
                             is MoneyGuardResult.Success -> {

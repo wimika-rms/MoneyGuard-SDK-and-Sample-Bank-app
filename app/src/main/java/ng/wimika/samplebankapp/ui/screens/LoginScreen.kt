@@ -117,22 +117,25 @@ suspend fun registerWithMoneyguard(
                 is MoneyGuardResult.Success -> {
                     val sessionResponse = result.data
                     Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.result}, Token present: ${sessionResponse.token.isNotEmpty()}")
-                    
-                    // Check if device is untrusted and requires 2FA
-                    if (sessionResponse.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
-                        Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
-                        onNavigateToVerification() // Navigate to verification screen
-                        return@collect
-                    }
-                    
-                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ✅ Device is trusted - Proceeding with normal flow")
+
                     if (sessionResponse.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(sessionResponse.token)
+                        preferenceManager?.saveMoneyGuardInstallationId(sessionResponse.installationId)
                         preferenceManager?.saveMoneyguardUserNames(
                             sessionResponse.userDetails.firstName,
                             sessionResponse.userDetails.lastName
                         )
                         Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Saved MoneyGuard token and user details")
+
+                        // Check if device is untrusted and requires 2FA
+                        if (sessionResponse.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
+                            Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
+                            onNavigateToVerification() // Navigate to verification screen
+                            return@collect
+                        }
+
+                        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ✅ Device is trusted - Proceeding with normal flow")
+
                     }
                     onRegistrationComplete() // Call completion handler
                 }
