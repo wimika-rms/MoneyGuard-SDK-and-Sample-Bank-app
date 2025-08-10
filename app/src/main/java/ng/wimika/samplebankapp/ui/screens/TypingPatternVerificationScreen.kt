@@ -67,10 +67,13 @@ fun TypingPatternVerificationScreen(
     var hasSharedLogs by remember { mutableStateOf(false) }
 
     // Get user's name for the prompt text
-    val firstName = preferenceManager?.getMoneyguardFirstName()?.takeIf { it.isNotBlank() } ?: "John"
-    val lastName = preferenceManager?.getMoneyguardLastName()?.takeIf { it.isNotBlank() } ?: "Doe"
+    //val firstName = preferenceManager?.getMoneyguardFirstName()?.takeIf { it.isNotBlank() } ?: "John"
+    //val lastName = preferenceManager?.getMoneyguardLastName()?.takeIf { it.isNotBlank() } ?: "Doe"
+    val fullName = preferenceManager?.getBankUserFullName()?.takeIf { it.isNotBlank() } ?: "John Doe"
+
     val textToType by remember {
-        mutableStateOf("hello, my name is $firstName $lastName")
+        //mutableStateOf("hello, my name is $firstName $lastName")
+        mutableStateOf("hello, my name is $fullName")
     }
 
     // Function to add debug logs
