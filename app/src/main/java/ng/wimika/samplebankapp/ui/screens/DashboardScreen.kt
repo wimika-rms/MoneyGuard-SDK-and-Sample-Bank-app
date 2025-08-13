@@ -46,7 +46,7 @@ fun DashboardScreen(
         preferenceManager?.let { pref ->
             val token = pref.getMoneyGuardToken()
             token?.let {
-                moneyguardStatus = sdkService?.utility()?.checkMoneyguardStatus(it)
+                moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(it)
             }
         }
     }
@@ -131,17 +131,24 @@ private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardApp
         Spacer(Modifier.weight(1f))
         Button(
             onClick = { 
-                if (moneyGuardAppStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled) {
+                if (moneyGuardAppStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled
+                    || moneyGuardAppStatus == MoneyGuardAppStatus.CancelledPolicyAppNotInstalled
+                    || moneyGuardAppStatus == MoneyGuardAppStatus.ExpiredPolicyPolicyAppNotInstalled
+                    ) {
                     onDownloadMoneyGuard()
                 }
                 else if(moneyGuardAppStatus == MoneyGuardAppStatus.NoPolicyAppInstalled
-                    || moneyGuardAppStatus == MoneyGuardAppStatus.InActive)
+                    || moneyGuardAppStatus == MoneyGuardAppStatus.InActive
+                    )
                 {
                     // Clear the flow state when starting account protection
                     MoneyGuardClientApp.accountProtectionFlowState?.clearState()
                     onProtectAccount()
                 }
-                else if(moneyGuardAppStatus == MoneyGuardAppStatus.Active)
+                else if(moneyGuardAppStatus == MoneyGuardAppStatus.Active
+                    || moneyGuardAppStatus == MoneyGuardAppStatus.ExpiredPolicyPolicyAppInstalled
+                    || moneyGuardAppStatus == MoneyGuardAppStatus.CancelledPolicyAppInstalled
+                    )
                 {
                     MoneyGuardClientApp.sdkService?.utility()?.launchMoneyGuardApp();
                 }
@@ -154,7 +161,11 @@ private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardApp
         ) {
             if(moneyGuardAppStatus != null) {
                 Text(
-                    text = if (moneyGuardAppStatus == MoneyGuardAppStatus.Active) {
+                    text = if (moneyGuardAppStatus == MoneyGuardAppStatus.Active
+                        || moneyGuardAppStatus == MoneyGuardAppStatus.ExpiredPolicyPolicyAppInstalled
+                        || moneyGuardAppStatus == MoneyGuardAppStatus.CancelledPolicyAppInstalled
+                        || moneyGuardAppStatus == MoneyGuardAppStatus.ExpiredPolicyPolicyAppInstalled)
+                    {
                         "Launch MoneyGuard"
                     } else {
                         "Protect Account"

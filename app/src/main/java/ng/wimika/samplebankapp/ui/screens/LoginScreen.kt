@@ -264,7 +264,7 @@ fun LoginScreen(
             return
         }
 
-        val status = sdkService.utility()?.checkMoneyguardStatus(token)
+        val status = sdkService.utility()?.checkMoneyguardPolicyStatus(token)
         if (status == MoneyGuardAppStatus.Active) {
             // --- Start Credential Check First ---
             isLoading = true
