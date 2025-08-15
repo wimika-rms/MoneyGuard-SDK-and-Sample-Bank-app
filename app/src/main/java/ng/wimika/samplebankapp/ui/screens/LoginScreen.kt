@@ -310,16 +310,16 @@ fun LoginScreen(
     fun performLocationCheckAfterCredential(token: String) {
         scope.launch {
             try {
-                when {
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
+//                when {
+//                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+//                    ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
 
-                        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-                        val location = fusedLocationClient.lastLocation.await()
+                        //val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                        //val location = fusedLocationClient.lastLocation.await()
 
-                        if (location != null) {
-                            val locationCheck = LocationCheck(latitude = location.latitude, longitude = location.longitude)
-                            val response = sdkService?.utility()?.checkLocation(token, locationCheck)
+                        //if (location != null) {
+                            //val locationCheck = LocationCheck(latitude = location.latitude, longitude = location.longitude)
+                            val response = sdkService?.utility()?.checkLocation(token)
 
                             if (response?.data?.isNotEmpty() == true) {
                                 // Suspicious location detected
@@ -328,23 +328,23 @@ fun LoginScreen(
                                 // Location is not suspicious, proceed to dashboard
                                 onLoginSuccess()
                             }
-                        } else {
-                            // Could not get location, proceed to dashboard
-                            onLoginSuccess()
-                        }
-                    }
-                    else -> {
-                        // Request permissions
-                        locationPermissionLauncher.launch(arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        ))
-                        // The result of the launcher will re-trigger this flow if needed,
-                        // but for now, we wait. To avoid complexity, we can also just proceed.
-                        // Let's proceed for a smoother UX if they deny.
-                        onLoginSuccess()
-                    }
-                }
+//                        } else {
+//                            // Could not get location, proceed to dashboard
+//                            onLoginSuccess()
+//                        }
+                   // }
+//                    else -> {
+//                        // Request permissions
+//                        locationPermissionLauncher.launch(arrayOf(
+//                            Manifest.permission.ACCESS_FINE_LOCATION,
+//                            Manifest.permission.ACCESS_COARSE_LOCATION
+//                        ))
+//                        // The result of the launcher will re-trigger this flow if needed,
+//                        // but for now, we wait. To avoid complexity, we can also just proceed.
+//                        // Let's proceed for a smoother UX if they deny.
+//                        onLoginSuccess()
+//                    }
+
             } catch (e: Exception) {
                 Log.e("LoginScreen", "Location check failed", e)
                 onLoginSuccess() // Failsafe: proceed to dashboard if location check has an error
