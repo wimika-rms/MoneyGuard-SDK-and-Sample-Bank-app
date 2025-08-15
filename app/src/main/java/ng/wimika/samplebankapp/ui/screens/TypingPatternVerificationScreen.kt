@@ -221,7 +221,7 @@ fun TypingPatternVerificationScreen(
                                 return@launch
                             }
                             addDebugLog("Token available, proceeding with verification")
-                            val result = typingProfileService.matchTypingProfile(userInput, token)
+                            val result = typingProfileService.verifyTypingProfile(userInput, token)
                             Log.d(VERIFY_LOG_TAG, "Verification result: $result")
                             addDebugLog("Verification result: ${result}")
 

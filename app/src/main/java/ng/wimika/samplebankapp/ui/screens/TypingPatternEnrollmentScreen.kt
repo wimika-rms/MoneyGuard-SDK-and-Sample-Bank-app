@@ -246,13 +246,13 @@ fun TypingPatternScreen(
                                     return@launch
                                 }
                                 addDebugLog("Token available, proceeding with typing match")
-                                val result = sdkService.getTypingProfile().matchTypingProfile(userInput, token)
+                                val result = sdkService.getTypingProfile().saveTypingProfile(userInput, token)
                                 Log.d(LOG_TAG, "Step $currentStep result: $result")
                                 addDebugLog("Step $currentStep. data from TP: message ${result.message}, action ${result.action}, matched ${result.matched}, enrollment ${result.enrollment}, high confidence ${result.high_Confidence}")
 
                                 if (result.success) {
                                     addDebugLog("Step $currentStep successful")
-                                    if (result.message.equals("Done", ignoreCase = true)) {
+                                    if (result.message.equals("Done", ignoreCase = true) && currentStep == 3) {
                                         sdkService.getTypingProfile().stopService()
                                         showSuccessBanner = true
                                         addDebugLog("Typing pattern enrollment completed successfully")
