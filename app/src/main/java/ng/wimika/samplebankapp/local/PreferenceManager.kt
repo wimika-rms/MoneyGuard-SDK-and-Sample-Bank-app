@@ -11,6 +11,7 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         private const val IS_FIRST_LAUNCH = "is_first_launch"
 
         private const val MONEY_GUARD_TOKEN = "moneyguard_token"
+        private const val IDENTITY_COMPROMISED = "identity_compromised"
         private const val MONEY_GUARD_INSTALLATION_ID = "moneyguard_installation_id"
         private const val USER_FIRST_NAME = "user_first_name"
         
@@ -49,7 +50,15 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
     }
     
     private val gson = Gson()
-    
+
+    override fun setIdentityCompromised(compromised: Boolean) {
+        sharedPreferences.edit { putBoolean(IDENTITY_COMPROMISED, compromised) }
+    }
+
+    override fun isIdentityCompromised(): Boolean? {
+        return sharedPreferences.getBoolean(IDENTITY_COMPROMISED, false)
+    }
+
     override fun saveMoneyGuardToken(token: String?) {
         sharedPreferences.edit { putString(MONEY_GUARD_TOKEN, token) }
     }

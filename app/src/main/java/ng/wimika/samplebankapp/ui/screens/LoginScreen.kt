@@ -286,7 +286,9 @@ fun LoginScreen(
                         val status = result.data.status
                         credentialDialogStatus = "Credential Check - $status"
                         showCredentialDialog = true
-
+                        if (status == RiskStatus.RISK_STATUS_UNSAFE){
+                            preferenceManager?.setIdentityCompromised(true)
+                        }
                         // Don't start location check yet - wait for user to click OK
                     } else {
                         credentialDialogStatus = "Loading..."

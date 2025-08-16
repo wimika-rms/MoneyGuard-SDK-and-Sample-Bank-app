@@ -1,8 +1,13 @@
 package ng.wimika.samplebankapp.local
 
+import androidx.core.content.edit
+
 interface IPreferenceManager {
     fun saveMoneyGuardToken(token: String?)
     fun getMoneyGuardToken(): String?
+
+    fun setIdentityCompromised(compromised: Boolean)
+    fun isIdentityCompromised(): Boolean?
 
     fun saveMoneyGuardInstallationId(token: String?)
     fun getMoneyGuardInstallationId(): String?

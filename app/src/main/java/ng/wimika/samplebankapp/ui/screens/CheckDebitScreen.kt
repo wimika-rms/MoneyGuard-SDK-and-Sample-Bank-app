@@ -49,6 +49,7 @@ import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransactio
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransactionCheckResult
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.LatLng
 import ng.wimika.samplebankapp.MoneyGuardClientApp
+import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 
 data class TransactionData(
     val sourceAccountNumber: String,
@@ -56,7 +57,7 @@ data class TransactionData(
     val destinationBank: String,
     val memo: String,
     val amount: Double,
-    val geoLocation: GeoLocation
+    //val geoLocation: GeoLocation
 )
 
 data class GeoLocation(
@@ -94,6 +95,9 @@ fun CheckDebitScreen(
     var alertMessage by remember { mutableStateOf("") }
     var alertButtonText by remember { mutableStateOf("OK") }
     var alertSecondaryButtonText by remember { mutableStateOf<String?>(null) }
+    var showSecondaryButton by remember { mutableStateOf(false) }
+    var alertConfirmAction by remember { mutableStateOf<() -> Unit>({}) }
+    var alertSecondaryAction by remember { mutableStateOf<() -> Unit>({}) }
     
     val enableButton = amount.isNotEmpty() && sourceAccountNumber.isNotEmpty() &&
                       destinationAccountNumber.isNotEmpty() && destinationBank.isNotEmpty() && 
@@ -112,38 +116,54 @@ fun CheckDebitScreen(
         }
     }
 
-    LaunchedEffect(hasLocationPermissions) {
-        if (hasLocationPermissions) {
-            try {
-                val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                    .addOnSuccessListener { location: Location? ->
-                        location?.let {
-                            latitude = it.latitude
-                            longitude = it.longitude
-                        }
-                    }
-            } catch (e: SecurityException) {
-                // Handle security exception
-                showAlert = true
-                alertTitle = "Location Error"
-                alertMessage = "Unable to get current location: ${e.message}"
-                alertButtonText = "OK"
-            }
-        }
+    var identityCompromised = preferenceManager?.isIdentityCompromised();
+    if(identityCompromised == true)
+    {
+        showAlert = true;
+        alertTitle = "Identity Compromised";
+        alertMessage = "Your banking login credentials have been compromised, please update your password before you can proceed with your transaction.";
+        alertButtonText = "OK";
+        showSecondaryButton = false;
+        alertConfirmAction = { 
+            showAlert = false
+            onBackClick() // Navigate back to dashboard
+        };
     }
 
+//    LaunchedEffect(hasLocationPermissions) {
+//        if (hasLocationPermissions) {
+//            try {
+//                val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+//                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+//                    .addOnSuccessListener { location: Location? ->
+//                        location?.let {
+//                            latitude = it.latitude
+//                            longitude = it.longitude
+//                        }
+//                    }
+//            } catch (e: SecurityException) {
+//                // Handle security exception
+//                showAlert = true
+//                alertTitle = "Location Error"
+//                alertMessage = "Unable to get current location: ${e.message}"
+//                alertButtonText = "OK"
+//                showSecondaryButton = false
+//                alertConfirmAction = { showAlert = false }
+//            }
+//        }
+//    }
+
     // Check permissions when screen loads
-    LaunchedEffect(Unit) {
-        if (!hasLocationPermissions) {
-            locationPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        if (!hasLocationPermissions) {
+//            locationPermissionLauncher.launch(
+//                arrayOf(
+//                    Manifest.permission.ACCESS_FINE_LOCATION,
+//                    Manifest.permission.ACCESS_COARSE_LOCATION
+//                )
+//            )
+//        }
+//    }
 
     fun handleRiskStatus(result: DebitTransactionCheckResult) {
         when (result.status) {
@@ -158,6 +178,8 @@ fun CheckDebitScreen(
                 alertMessage = "We have detected some threats that may put your transaction at risk, " +
                         "please review and proceed with caution - $commaSeparatedRisks"
                 alertButtonText = "Proceed"
+                showSecondaryButton = false
+                alertConfirmAction = { showAlert = false }
             }
             RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS -> {
                 isLoading = false
@@ -166,6 +188,8 @@ fun CheckDebitScreen(
                 alertMessage = "We have detected that you logged in with compromised credentials, " +
                         "a 2FA is required to proceed"
                 alertButtonText = "Proceed"
+                showSecondaryButton = false
+                alertConfirmAction = { showAlert = false }
             }
             RiskStatus.RISK_STATUS_UNSAFE_LOCATION -> {
                 isLoading = false
@@ -174,6 +198,8 @@ fun CheckDebitScreen(
                 alertMessage = "We have detected that this transaction is happening in a suspicious location, " +
                         "a 2FA is required to proceed"
                 alertButtonText = "Proceed"
+                showSecondaryButton = false
+                alertConfirmAction = { showAlert = false }
             }
             RiskStatus.RISK_STATUS_UNSAFE -> {
                 val commaSeparatedRisks = result.risks
@@ -186,6 +212,8 @@ fun CheckDebitScreen(
                 alertMessage = "We have detected some threats that may put your transaction at risk, " +
                         "a 2FA is required to proceed - $commaSeparatedRisks"
                 alertButtonText = "Proceed"
+                showSecondaryButton = false
+                alertConfirmAction = { showAlert = false }
             }
             else -> {
                 isLoading = false
@@ -193,6 +221,8 @@ fun CheckDebitScreen(
                 alertTitle = "Transaction Safe"
                 alertMessage = "Your transaction has been verified as safe."
                 alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = { showAlert = false }
             }
         }
     }
@@ -210,8 +240,8 @@ fun CheckDebitScreen(
             memo = data.memo,
             amount = data.amount,
             location = LatLng(
-                longitude = data.geoLocation.lon,
-                latitude = data.geoLocation.lat
+                longitude = 0.0,
+                latitude = 0.0
             )
         )
 
@@ -225,6 +255,8 @@ fun CheckDebitScreen(
                     alertTitle = "Transaction Failed"
                     alertMessage = "Transaction check failed. Please try again."
                     alertButtonText = "OK"
+                    showSecondaryButton = false
+                    alertConfirmAction = { showAlert = false }
                 }
             },
             onFailure = {
@@ -233,18 +265,22 @@ fun CheckDebitScreen(
                 alertTitle = "Error"
                 alertMessage = "Failed to check transaction. Please try again."
                 alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = { showAlert = false }
             }
         )
     }
 
     fun handleCheckDebitClick() {
-        if (!hasLocationPermissions) {
-            showAlert = true
-            alertTitle = "Location Required"
-            alertMessage = "Location permissions are required for this transaction."
-            alertButtonText = "OK"
-            return
-        }
+//        if (!hasLocationPermissions) {
+//            showAlert = true
+//            alertTitle = "Location Required"
+//            alertMessage = "Location permissions are required for this transaction."
+//            alertButtonText = "OK"
+//            showSecondaryButton = false
+//            alertConfirmAction = { showAlert = false }
+//            return
+//        }
         
         val amountDouble = amount.toDoubleOrNull()
         if (amountDouble == null) {
@@ -252,6 +288,8 @@ fun CheckDebitScreen(
             alertTitle = "Invalid Amount"
             alertMessage = "Please enter a valid amount."
             alertButtonText = "OK"
+            showSecondaryButton = false
+            alertConfirmAction = { showAlert = false }
             return
         }
         
@@ -261,10 +299,6 @@ fun CheckDebitScreen(
             destinationBank = destinationBank,
             memo = memo,
             amount = amountDouble,
-            geoLocation = GeoLocation(
-                lat = latitude,
-                lon = longitude
-            )
         )
         
         checkDebitTransaction(transactionData)
@@ -368,14 +402,14 @@ fun CheckDebitScreen(
 
                 Box(modifier = Modifier.padding(top = 16.dp))
 
-                Text("Current Location")
-                Text(
-                    text = if (hasLocationPermissions) {
-                        "Longitude: $longitude, Latitude: $latitude"
-                    } else {
-                        "Location permissions not granted"
-                    }
-                )
+//                Text("Current Location")
+//                Text(
+//                    text = if (hasLocationPermissions) {
+//                        "Longitude: $longitude, Latitude: $latitude"
+//                    } else {
+//                        "Location permissions not granted"
+//                    }
+//                )
             }
 
             if (showAlert) {
@@ -385,20 +419,20 @@ fun CheckDebitScreen(
                     text = { Text(alertMessage) },
                     confirmButton = {
                         TextButton(
-                            onClick = { showAlert = false }
+                            onClick = alertConfirmAction
                         ) {
                             Text(alertButtonText)
                         }
                     },
-                    dismissButton = alertSecondaryButtonText?.let { secondaryText ->
+                    dismissButton = if (showSecondaryButton && alertSecondaryButtonText != null) {
                         {
                             TextButton(
-                                onClick = { showAlert = false }
+                                onClick = alertSecondaryAction
                             ) {
-                                Text(secondaryText)
+                                Text(alertSecondaryButtonText!!)
                             }
                         }
-                    }
+                    } else null
                 )
             }
         }
