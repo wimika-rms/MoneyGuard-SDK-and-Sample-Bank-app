@@ -45,9 +45,16 @@ fun DashboardScreen(
     LaunchedEffect(key1 = Unit) {
         preferenceManager?.let { pref ->
             val token = pref.getMoneyGuardToken()
-            token?.let {
-                moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(it)
+            //token?.let {
+            if(token != null)
+            {
+                moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(token)
             }
+            else{
+                moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus("")
+            }
+
+            //}
         }
     }
 

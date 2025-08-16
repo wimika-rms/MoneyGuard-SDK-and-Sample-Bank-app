@@ -238,11 +238,7 @@ fun CheckDebitScreen(
             destinationAccountNumber = data.destinationAccountNumber,
             destinationBank = data.destinationBank,
             memo = data.memo,
-            amount = data.amount,
-            location = LatLng(
-                longitude = 0.0,
-                latitude = 0.0
-            )
+            amount = data.amount
         )
 
         transactionCheck?.checkDebitTransaction(sessionToken, debitTransaction,
