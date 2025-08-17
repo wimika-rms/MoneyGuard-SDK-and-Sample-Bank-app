@@ -80,6 +80,7 @@ fun LoginScreen(
     var showCredentialDialog by remember { mutableStateOf(false) }
     var credentialDialogMessage by remember { mutableStateOf("") }
     var showUnusualLocationDialog by remember { mutableStateOf(false) }
+    var showUntrustedDeviceDialog by remember { mutableStateOf(false) }
 
     // --- Side Effect Handling ---
     LaunchedEffect(Unit) {
@@ -103,6 +104,7 @@ fun LoginScreen(
                     }
                 }
                 is LoginSideEffect.ShowUnusualLocationDialog -> showUnusualLocationDialog = true
+                is LoginSideEffect.ShowUntrustedDeviceDialog -> showUntrustedDeviceDialog = true
             }
         }
     }
@@ -153,6 +155,15 @@ fun LoginScreen(
                     onProceed = {
                         showUnusualLocationDialog = false
                         viewModel.onEvent(LoginEvent.OnDismissUnusualLocationDialogAndProceed)
+                    }
+                )
+            }
+
+            if (showUntrustedDeviceDialog) {
+                UntrustedDeviceDialog(
+                    onProceedToVerification = {
+                        showUntrustedDeviceDialog = false
+                        viewModel.onEvent(LoginEvent.OnDismissUntrustedDeviceDialog)
                     }
                 )
             }
@@ -358,6 +369,42 @@ private fun UnusualLocationDialog(onVerify: () -> Unit, onProceed: () -> Unit) {
         },
         dismissButton = {
             TextButton(onClick = onProceed) { Text("Proceed without Verify") }
+        }
+    )
+}
+
+@Composable
+private fun UntrustedDeviceDialog(onProceedToVerification: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { /* Prevent dismissing */ },
+        title = { 
+            Text(
+                text = "Device Verification Required",
+                fontWeight = FontWeight.Bold
+            ) 
+        },
+        text = { 
+            Column {
+                Text(
+                    text = "You are logging in from a different device than where MoneyGuard was initially installed.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "For your security, we need to verify your identity before we can enable Moneyguard protection on this device.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onProceedToVerification,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SabiBankColors.OrangePrimary
+                )
+            ) { 
+                Text("Proceed to Verification") 
+            }
         }
     )
 }

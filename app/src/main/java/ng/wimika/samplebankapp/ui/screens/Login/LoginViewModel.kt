@@ -46,6 +46,7 @@ sealed interface LoginEvent {
     object OnDismissCredentialDialog : LoginEvent
     object OnDismissUnusualLocationDialogAndVerify : LoginEvent
     object OnDismissUnusualLocationDialogAndProceed : LoginEvent
+    object OnDismissUntrustedDeviceDialog : LoginEvent
     object OnLogout : LoginEvent
 }
 
@@ -56,6 +57,7 @@ sealed interface LoginSideEffect {
     object HideRiskDialog : LoginSideEffect
     data class ShowCredentialDialog(val status: String) : LoginSideEffect
     object ShowUnusualLocationDialog : LoginSideEffect
+    object ShowUntrustedDeviceDialog : LoginSideEffect
 }
 
 class LoginViewModel(
@@ -96,6 +98,7 @@ class LoginViewModel(
                 preferenceManager?.saveSuspiciousLoginStatus(true)
                 viewModelScope.launch { _sideEffect.send(LoginSideEffect.NavigateToDashboard) }
             }
+            is LoginEvent.OnDismissUntrustedDeviceDialog -> viewModelScope.launch { _sideEffect.send(LoginSideEffect.NavigateToVerification) }
             is LoginEvent.OnLogout -> resetLoginState()
         }
     }
@@ -166,7 +169,7 @@ class LoginViewModel(
                 // Step 2: MoneyGuard Registration
                 val registrationResult = registerWithMoneyGuard(sessionData.sessionId)
                 if (registrationResult == RegistrationResult.NEEDS_VERIFICATION) {
-                    _sideEffect.send(LoginSideEffect.NavigateToVerification)
+                    _sideEffect.send(LoginSideEffect.ShowUntrustedDeviceDialog)
                     return@launch
                 }
 
