@@ -1,6 +1,7 @@
 package ng.wimika.samplebankapp.ui.screens.Login
 
 import android.os.Build
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
@@ -69,6 +70,7 @@ class LoginViewModel(
 
     private val _sideEffect = Channel<LoginSideEffect>()
     val sideEffect = _sideEffect.receiveAsFlow()
+    private val LOG_TAG = "MONEYGUARD_LOGGER"
 
     private val moneyGuardPrelaunch: MoneyGuardPrelaunch? = sdkService?.prelaunch()
 
@@ -245,10 +247,17 @@ class LoginViewModel(
                             preferenceManager?.setIdentityCompromised(true)
                         }
                         "Credential Check - ${result.data.status}"
-                    } else {
+                    }
+                    else {
                         "Credential Check - Could not determine status"
                     }
-                    viewModelScope.launch { _sideEffect.send(LoginSideEffect.ShowCredentialDialog(statusText)) }
+                    viewModelScope.launch {
+                        _sideEffect.send(
+                            LoginSideEffect.ShowCredentialDialog(
+                                statusText
+                            )
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 // Failsafe: proceed to location check if credential check has an error
@@ -266,12 +275,20 @@ class LoginViewModel(
 
             try {
                 val response = sdkService?.utility()?.checkLocation(token)
+
+                //Use joinToString to format the list with a newline for each item
+                val formattedList = response?.data?.joinToString(separator = "\n") { item ->
+                    "  - $item" // 'item' will use the data class's automatic toString()
+                } ?: "null" // Handle the case where the list itself is null
+
+                Log.i(LOG_TAG, "[SampleBankApp|LoginviewModel] Location check:\n$formattedList")
                 if (response?.data?.isNotEmpty() == true) {
                     _sideEffect.send(LoginSideEffect.ShowUnusualLocationDialog)
                 } else {
                     _sideEffect.send(LoginSideEffect.NavigateToDashboard)
                 }
             } catch (e: Exception) {
+                Log.e(LOG_TAG, "[SampleBankApp|LoginviewModel] ❌ Error during location check: ${e.message}")
                 // Failsafe: proceed to dashboard if location check fails
                 _sideEffect.send(LoginSideEffect.NavigateToDashboard)
             } finally {

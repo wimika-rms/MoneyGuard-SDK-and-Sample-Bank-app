@@ -73,7 +73,8 @@ fun TypingPatternVerificationScreen(
 
     val textToType by remember {
         //mutableStateOf("hello, my name is $firstName $lastName")
-        mutableStateOf("hello, my name is $fullName")
+        //mutableStateOf("hello, my name is $fullName")
+        mutableStateOf("your typing biometrics are unique and natural")
     }
 
     // Function to add debug logs
@@ -188,7 +189,9 @@ fun TypingPatternVerificationScreen(
                         setPadding(40, 40, 40, 40)
                         inputType = InputType.TYPE_CLASS_TEXT or
                                 InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or
-                                InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                                //InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                                InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                                InputType.TYPE_TEXT_VARIATION_FILTER
                         addTextChangedListener(object : TextWatcher {
                             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}

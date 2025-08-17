@@ -94,7 +94,13 @@ fun LoginScreen(
                 is LoginSideEffect.HideRiskDialog -> showRiskModal = false
                 is LoginSideEffect.ShowCredentialDialog -> {
                     credentialDialogMessage = effect.status
-                    showCredentialDialog = true
+                    if(effect.status == "Credential Check - Could not determine status")
+                    {
+
+                    }
+                    else{
+                        showCredentialDialog = true
+                    }
                 }
                 is LoginSideEffect.ShowUnusualLocationDialog -> showUnusualLocationDialog = true
             }
