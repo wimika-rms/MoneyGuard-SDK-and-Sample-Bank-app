@@ -110,10 +110,7 @@ fun DownloadMoneyGuardScreen(
             if (showInstallComplete) {
                 InstallCompleteContent(
                     onContinue = {
-                        // This logic is moved from your old AlertDialog.
-                        // It ensures the user is logged out before navigating.
-                        preferenceManager?.saveLoggedOut(true)
-                        preferenceManager?.clear()
+                        // Navigation will handle the logout process
                         onDownloadComplete() // This will navigate to the Login screen
                     }
                 )

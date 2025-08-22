@@ -292,6 +292,8 @@ fun AppNavigation() {
                     currentScreen = Screen.Dashboard
                 },
                 onDownloadComplete = {
+                    // Ensure proper logout and state reset before navigating to login
+                    logoutUser()
                     currentScreen = Screen.Login
                 }
             )

@@ -50,6 +50,12 @@ interface IPreferenceManager {
     fun wasAppForceClosedPreviously(): Boolean
     fun clearAllOnAppClose()
 
+    // Risk register management
+    fun saveRiskToRegister(risk: String)
+    fun getRiskRegister(): List<String>
+    fun clearRiskRegister()
+    fun hasRisk(risk: String): Boolean
+
     fun clear()
 }
 

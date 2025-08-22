@@ -43,6 +43,9 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         // App lifecycle constants for security
         private const val APP_STARTED = "app_started"
         private const val APP_PROPERLY_CLOSED = "app_properly_closed"
+        
+        // Risk register constant
+        private const val RISK_REGISTER = "risk_register"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -237,5 +240,36 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
 
     override fun getIsLoggedOut(): Boolean {
         return sharedPreferences.getBoolean(LOGGED_OUT, false)
+    }
+
+    // Risk register implementation
+    override fun saveRiskToRegister(risk: String) {
+        val currentRisks = getRiskRegister().toMutableList()
+        if (!currentRisks.contains(risk)) {
+            currentRisks.add(risk)
+            val json = gson.toJson(currentRisks)
+            sharedPreferences.edit { putString(RISK_REGISTER, json) }
+        }
+    }
+
+    override fun getRiskRegister(): List<String> {
+        val json = sharedPreferences.getString(RISK_REGISTER, null)
+        return if (json != null) {
+            try {
+                gson.fromJson(json, Array<String>::class.java).toList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    override fun clearRiskRegister() {
+        sharedPreferences.edit { remove(RISK_REGISTER) }
+    }
+
+    override fun hasRisk(risk: String): Boolean {
+        return getRiskRegister().contains(risk)
     }
 }

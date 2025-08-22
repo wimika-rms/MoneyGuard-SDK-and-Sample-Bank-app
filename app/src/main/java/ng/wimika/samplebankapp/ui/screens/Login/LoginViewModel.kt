@@ -77,7 +77,13 @@ class LoginViewModel(
     private val moneyGuardPrelaunch: MoneyGuardPrelaunch? = sdkService?.prelaunch()
 
     init {
-        _uiState.update { it.copy(isDebugLogsEnabled = preferenceManager?.isDebugLogsEnabled() ?: false) }
+        val isLoggedOut = preferenceManager?.getIsLoggedOut() ?: false
+        _uiState.update { 
+            it.copy(
+                isDebugLogsEnabled = preferenceManager?.isDebugLogsEnabled() ?: false,
+                isPrelaunchChecking = !isLoggedOut // Don't show loading if user explicitly logged out
+            ) 
+        }
         runPrelaunchChecks()
     }
 
@@ -118,7 +124,12 @@ class LoginViewModel(
 
                 _uiState.update { it.copy(prelaunchRisks = risks, isPrelaunchChecking = false) }
 
+                // Save prelaunch risks to risk register
                 if (risks.isNotEmpty()) {
+                    preferenceManager?.clearRiskRegister() // Clear old risks first
+                    risks.forEach { risk ->
+                        preferenceManager?.saveRiskToRegister(risk.name)
+                    }
                     _sideEffect.send(LoginSideEffect.ShowRiskDialog(risks.first()))
                 }
             } catch (e: Exception) {
@@ -248,6 +259,7 @@ class LoginViewModel(
                     val statusText = if (result is MoneyGuardResult.Success) {
                         if (result.data.status == RiskStatus.RISK_STATUS_UNSAFE) {
                             preferenceManager?.setIdentityCompromised(true)
+                            preferenceManager?.saveRiskToRegister("identity_compromise")
                         }
                         "Credential Check - ${result.data.status}"
                     }
@@ -286,6 +298,7 @@ class LoginViewModel(
 
                 Log.i(LOG_TAG, "[SampleBankApp|LoginviewModel] Location check:\n$formattedList")
                 if (response?.data?.isNotEmpty() == true) {
+                    preferenceManager?.saveRiskToRegister("unusual_location")
                     _sideEffect.send(LoginSideEffect.ShowUnusualLocationDialog)
                 } else {
                     _sideEffect.send(LoginSideEffect.NavigateToDashboard)
@@ -301,6 +314,9 @@ class LoginViewModel(
     }
 
     private fun resetLoginState() {
+        // Clear risk register on logout
+        preferenceManager?.clearRiskRegister()
+        
         _uiState.update {
             it.copy(
                 username = "",

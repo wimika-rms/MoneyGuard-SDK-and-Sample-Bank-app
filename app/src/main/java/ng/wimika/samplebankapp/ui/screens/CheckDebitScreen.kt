@@ -50,6 +50,7 @@ import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransactio
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.LatLng
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
+import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
 
 data class TransactionData(
     val sourceAccountNumber: String,
@@ -128,6 +129,59 @@ fun CheckDebitScreen(
             showAlert = false
             onBackClick() // Navigate back to dashboard
         };
+    }
+
+    // Check for specific risks from risk register that prevent transactions
+    LaunchedEffect(Unit) {
+        val riskRegister = preferenceManager?.getRiskRegister() ?: emptyList()
+        
+        when {
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_APPLICATION_MALWARE_NAME) -> {
+                showAlert = true
+                alertTitle = "Malware Detected"
+                alertMessage = "Malware has been detected on your device that could compromise your transaction. Please remove the malware before proceeding with any financial transactions."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = { 
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_NETWORK_WIFI_ENCRYPTION_NAME) || 
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_NETWORK_WIFI_PASSWORD_PROTECTION_NAME) -> {
+                showAlert = true
+                alertTitle = "Unsecure Network"
+                alertMessage = "You are connected to an unencrypted or unsecure WiFi network. Please disconnect and connect to a secure WiFi network before proceeding with your transaction."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = { 
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_DEVICE_ROOT_OR_JAILBREAK_NAME) -> {
+                showAlert = true
+                alertTitle = "Device Security Compromised"
+                alertMessage = "Your device has been rooted/jailbroken which compromises its security. Financial transactions cannot be performed on this device for your safety."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = { 
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_NETWORK_MITM_NAME) -> {
+                showAlert = true
+                alertTitle = "Network Security Risk"
+                alertMessage = "A man-in-the-middle attack has been detected on your network connection. Please change to a secure network before proceeding with your transaction."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = { 
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+        }
     }
 
 //    LaunchedEffect(hasLocationPermissions) {
