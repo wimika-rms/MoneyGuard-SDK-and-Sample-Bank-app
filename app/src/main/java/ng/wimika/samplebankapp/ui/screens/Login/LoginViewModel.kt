@@ -209,6 +209,7 @@ class LoginViewModel(
                         preferenceManager?.saveMoneyGuardToken(response.token)
                         preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
                         preferenceManager?.saveMoneyguardUserNames(response.userDetails.firstName, response.userDetails.lastName)
+                        preferenceManager?.saveHighRiskThreshold(response.highRiskThreshold)
                     }
                     if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa
                         && sdkService?.utility()?.checkMoneyguardPolicyStatus(response.token) == MoneyGuardAppStatus.Active

@@ -399,6 +399,8 @@ private fun RiskScoreCard() {
                     if (currentRiskScore > 0) {
                         riskScore = currentRiskScore
                         isLoading = false
+                        // Persist the risk score for use in other screens
+                        preferenceManager?.saveCurrentRiskScore(currentRiskScore)
                        // break // Exit the loop once we get a valid score
                     }
                     

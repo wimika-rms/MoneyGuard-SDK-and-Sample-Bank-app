@@ -117,22 +117,41 @@ fun CheckDebitScreen(
         }
     }
 
-    var identityCompromised = preferenceManager?.isIdentityCompromised();
-    if(identityCompromised == true)
-    {
-        showAlert = true;
-        alertTitle = "Identity Compromised";
-        alertMessage = "Your banking login credentials have been compromised, please update your password before you can proceed with your transaction.";
-        alertButtonText = "OK";
-        showSecondaryButton = false;
-        alertConfirmAction = { 
-            showAlert = false
-            onBackClick() // Navigate back to dashboard
-        };
-    }
-
-    // Check for specific risks from risk register that prevent transactions
+    // Consolidated security checks in proper priority order
     LaunchedEffect(Unit) {
+        // HIGHEST PRIORITY: Risk score vs high risk threshold check
+        val currentRiskScore = preferenceManager?.getCurrentRiskScore() ?: 0
+        val highRiskThreshold = preferenceManager?.getHighRiskThreshold() ?: 0.0
+        
+        if (currentRiskScore > 0 && currentRiskScore < highRiskThreshold) {
+            showAlert = true
+            alertTitle = "Low Risk Posture"
+            alertMessage = "Your risk posture is very low and you have pending issues that need to be resolved on the MoneyGuard App before you can proceed with transactions."
+            alertButtonText = "OK"
+            showSecondaryButton = false
+            alertConfirmAction = { 
+                showAlert = false
+                onBackClick() // Navigate back to dashboard
+            }
+            return@LaunchedEffect // Exit early to prevent other checks
+        }
+
+        // SECOND PRIORITY: Identity compromised check
+        val identityCompromised = preferenceManager?.isIdentityCompromised() ?: false
+        if (identityCompromised) {
+            showAlert = true
+            alertTitle = "Identity Compromised"
+            alertMessage = "Your banking login credentials have been compromised, please update your password before you can proceed with your transaction."
+            alertButtonText = "OK"
+            showSecondaryButton = false
+            alertConfirmAction = { 
+                showAlert = false
+                onBackClick() // Navigate back to dashboard
+            }
+            return@LaunchedEffect // Exit early to prevent other checks
+        }
+
+        // THIRD PRIORITY: Check for specific risks from risk register that prevent transactions
         val riskRegister = preferenceManager?.getRiskRegister() ?: emptyList()
         
         when {
