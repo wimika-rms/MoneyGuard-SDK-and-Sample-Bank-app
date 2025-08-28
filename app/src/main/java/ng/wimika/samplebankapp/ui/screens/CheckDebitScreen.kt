@@ -51,6 +51,7 @@ import ng.wimika.moneyguard_sdk.services.transactioncheck.models.LatLng
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
+import ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus
 
 data class TransactionData(
     val sourceAccountNumber: String,
@@ -71,6 +72,7 @@ data class GeoLocation(
 fun CheckDebitScreen(
     onLocationPermissionDismissed: () -> Unit = {},
     onBackClick: () -> Unit = {},
+    onDownloadMoneyGuard: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -100,6 +102,10 @@ fun CheckDebitScreen(
     var alertConfirmAction by remember { mutableStateOf<() -> Unit>({}) }
     var alertSecondaryAction by remember { mutableStateOf<() -> Unit>({}) }
     
+    // Add new state variables for policy status
+    var moneyguardStatus by remember { mutableStateOf<MoneyGuardAppStatus?>(null) }
+    var showPolicyAlert by remember { mutableStateOf(false) }
+    
     val enableButton = amount.isNotEmpty() && sourceAccountNumber.isNotEmpty() &&
                       destinationAccountNumber.isNotEmpty() && destinationBank.isNotEmpty() && 
                       !isLoading
@@ -114,6 +120,16 @@ fun CheckDebitScreen(
         
         if (!hasLocationPermissions) {
             onLocationPermissionDismissed()
+        }
+    }
+
+    // Add new LaunchedEffect to check policy status
+    LaunchedEffect(Unit) {
+        val token = preferenceManager?.getMoneyGuardToken() ?: ""
+        moneyguardStatus = MoneyGuardClientApp.sdkService?.utility()?.checkMoneyguardPolicyStatus(token)
+        
+        if (moneyguardStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled) {
+            showPolicyAlert = true
         }
     }
 
@@ -479,6 +495,37 @@ fun CheckDebitScreen(
 //                        "Location permissions not granted"
 //                    }
 //                )
+            }
+
+            // Add new alert dialog for policy status (show first)
+            if (showPolicyAlert) {
+                AlertDialog(
+                    onDismissRequest = { showPolicyAlert = false },
+                    title = { Text("Protect your account") },
+                    text = { 
+                        Text("For your security, we recommend installing MoneyGuard before proceeding with transactions.") 
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showPolicyAlert = false
+                                onDownloadMoneyGuard() // Navigate to download screen
+                            }
+                        ) {
+                            Text("Download MoneyGuard")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { 
+                                showPolicyAlert = false 
+                                // User chooses to proceed anyway
+                            }
+                        ) {
+                            Text("Proceed anyway")
+                        }
+                    }
+                )
             }
 
             if (showAlert) {

@@ -306,6 +306,9 @@ fun AppNavigation() {
                 },
                 onBackClick = {
                     currentScreen = Screen.Dashboard
+                },
+                onDownloadMoneyGuard = {
+                    currentScreen = Screen.DownloadMoneyGuard
                 }
             )
         }
