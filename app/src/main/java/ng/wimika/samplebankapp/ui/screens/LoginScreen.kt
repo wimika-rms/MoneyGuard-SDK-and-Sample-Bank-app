@@ -108,46 +108,44 @@ suspend fun registerWithMoneyguard(
     try {
         val sdkService = MoneyGuardClientApp.sdkService
         Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] SDK Service available: ${sdkService != null}")
-        
-        sdkService?.authentication()?.register(
-            parteBankId = Constants.PARTNER_BANK_ID,
-            partnerSessionToken = sessionId
-        )?.collect { result ->
-            when (result) {
-                is MoneyGuardResult.Success -> {
-                    val sessionResponse = result.data
-                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.result}, Token present: ${sessionResponse.token.isNotEmpty()}")
 
-                    if (sessionResponse.token.isNotEmpty()) {
-                        preferenceManager?.saveMoneyGuardToken(sessionResponse.token)
-                        preferenceManager?.saveMoneyGuardInstallationId(sessionResponse.installationId)
-                        preferenceManager?.saveMoneyguardUserNames(
-                            sessionResponse.userDetails.firstName,
-                            sessionResponse.userDetails.lastName
-                        )
-                        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Saved MoneyGuard token and user details")
+        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration loading...")
+        val result = sdkService?.authentication()?.register(
+            partnerSessionToken = sessionId,
+            partnerBankId = Constants.PARTNER_BANK_ID
+        )
 
-                        // Check if device is untrusted and requires 2FA
-                        if (sessionResponse.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
-                            Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
-                            onNavigateToVerification() // Navigate to verification screen
-                            return@collect
-                        }
+        result?.fold(
+            onSuccess = { result ->
+                val sessionResponse = result
+                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration success - Result: ${sessionResponse.result}, Token present: ${sessionResponse.token.isNotEmpty()}")
 
-                        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ✅ Device is trusted - Proceeding with normal flow")
+                if (sessionResponse.token.isNotEmpty()) {
+                    preferenceManager?.saveMoneyGuardToken(sessionResponse.token)
+                    preferenceManager?.saveMoneyGuardInstallationId(sessionResponse.installationId)
+                    preferenceManager?.saveMoneyguardUserNames(
+                        sessionResponse.userDetails.firstName,
+                        sessionResponse.userDetails.lastName
+                    )
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Saved MoneyGuard token and user details")
 
+                    // Check if device is untrusted and requires 2FA
+                    if (sessionResponse.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
+                        Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ⚠️ DEVICE UNTRUSTED - Triggering verification flow")
+                        onNavigateToVerification() // Navigate to verification screen
+                       return
                     }
-                    onRegistrationComplete() // Call completion handler
+
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ✅ Device is trusted - Proceeding with normal flow")
+
                 }
-                is MoneyGuardResult.Failure -> {
-                    Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ❌ Registration failed: ${result.error.message}")
-                    onRegistrationComplete() // Also call on failure to continue flow
-                }
-                is MoneyGuardResult.Loading -> { 
-                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] Registration loading...")
-                }
+                onRegistrationComplete() // Call completion handler
+            },
+            onFailure = { error ->
+                Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ❌ Registration failed: ${error.message}")
+                onRegistrationComplete() // Also call on failure to continue flow
             }
-        }
+        )
     } catch (e: Exception) {
         Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|LoginScreen] ❌ Exception during registration: ${e.message}", e)
         onRegistrationComplete() // Also call on exception
@@ -232,7 +230,7 @@ fun LoginScreen(
     val context = LocalContext.current
     // In a real app, you'd use dependency injection for the repository
     val loginRepository = remember { LoginRepositoryImpl() }
-    val preferenceManager = MoneyGuardClientApp.preferenceManager
+    val preferenceManager = preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
 
     // MoneyGuard prelaunch service
@@ -281,21 +279,24 @@ fun LoginScreen(
                     hashAlgorithm = HashAlgorithm.SHA256
                 )
 
-                sdkService.authentication()?.credentialCheck(token, credential) { result ->
-                    if (result is MoneyGuardResult.Success) {
-                        val status = result.data.status
+                credentialDialogStatus = "Loading..."
+                showCredentialDialog = true
+                val result = sdkService.authentication().credentialCheck(token, credential)
+                result.fold(
+                    onSuccess = { data ->
+                        val status = data.status
                         credentialDialogStatus = "Credential Check - $status"
                         showCredentialDialog = true
                         if (status == RiskStatus.RISK_STATUS_UNSAFE){
                             preferenceManager?.setIdentityCompromised(true)
                         }
                         // Don't start location check yet - wait for user to click OK
-                    } else {
-                        credentialDialogStatus = "Loading..."
-                        showCredentialDialog = true
-                        // Don't start location check yet - wait for user to click OK
+                    },
+                    onFailure = { e ->
+                        Log.e("LoginScreen", "Credential check failed", e)
+                        onLoginSuccess() // Failsafe: proceed to dashboard if credential check has an error
                     }
-                }
+                )
             } catch (e: Exception) {
                 Log.e("LoginScreen", "Credential check failed", e)
                 onLoginSuccess() // Failsafe: proceed to dashboard if credential check has an error
@@ -321,15 +322,23 @@ fun LoginScreen(
 
                         //if (location != null) {
                             //val locationCheck = LocationCheck(latitude = location.latitude, longitude = location.longitude)
-                            val response = sdkService?.utility()?.checkLocation(token)
+                            val result = sdkService?.utility()?.checkLocation(token)
 
-                            if (response?.data?.isNotEmpty() == true) {
-                                // Suspicious location detected
-                                showUnusualLocationDialog = true
-                            } else {
-                                // Location is not suspicious, proceed to dashboard
-                                onLoginSuccess()
-                            }
+                result?.fold(
+                    onSuccess = { response ->
+                        if (response.data.isNotEmpty()) {
+                            // Suspicious location detected
+                            showUnusualLocationDialog = true
+                        } else {
+                            // Location is not suspicious, proceed to dashboard
+                            onLoginSuccess()
+                        }
+                    },
+                    onFailure = { e ->
+                        Log.e("LoginScreen", "Location check failed", e)
+                        onLoginSuccess() // Failsafe: proceed to dashboard if location check has an error
+                    }
+                )
 //                        } else {
 //                            // Could not get location, proceed to dashboard
 //                            onLoginSuccess()

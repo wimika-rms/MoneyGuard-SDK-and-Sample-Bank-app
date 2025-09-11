@@ -93,21 +93,19 @@ fun AppNavigation() {
                     )
                     
                     Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 📡 Calling trustDevice API with deviceId $deviceId...")
-                    sdkService.authentication()?.trustDevice(token, deviceId, trustedDeviceRequest)?.collect { result ->
-                        when (result) {
-                            is MoneyGuardResult.Success -> {
-                                trustResult = "Device trusted successfully! You can now securely access your account on this device."
-                                Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ Device trust SUCCESSFUL - Device is now trusted")
-                            }
-                            is MoneyGuardResult.Failure -> {
-                                trustResult = "Failed to trust device: ${result.error.message}"
-                                Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Device trust FAILED: ${result.error.message}")
-                            }
-                            is MoneyGuardResult.Loading -> {
-                                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ⏳ Device trust in progress...")
-                            }
+                    Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ⏳ Device trust in progress...")
+
+                    val result = sdkService.authentication().trustDevice(token, deviceId, trustedDeviceRequest)
+                    result.fold(
+                        onSuccess = {
+                            trustResult = "Device trusted successfully! You can now securely access your account on this device."
+                            Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ Device trust SUCCESSFUL - Device is now trusted")
+                        },
+                        onFailure = { error ->
+                            trustResult = "Failed to trust device: ${error.message}"
+                            Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Device trust FAILED: ${error.message}")
                         }
-                    }
+                    )
                 } else {
                     trustResult = "Error: Missing authentication information"
                     Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Missing required authentication data")
