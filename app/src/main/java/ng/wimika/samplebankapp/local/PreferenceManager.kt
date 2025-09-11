@@ -43,6 +43,12 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         // App lifecycle constants for security
         private const val APP_STARTED = "app_started"
         private const val APP_PROPERLY_CLOSED = "app_properly_closed"
+        
+        // Risk register constant
+        private const val RISK_REGISTER = "risk_register"
+        
+        // Current risk score constant
+        private const val CURRENT_RISK_SCORE = "current_risk_score"
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
@@ -57,6 +63,14 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
 
     override fun isIdentityCompromised(): Boolean? {
         return sharedPreferences.getBoolean(IDENTITY_COMPROMISED, false)
+    }
+
+    override fun saveHighRiskThreshold(score: Double?)
+    {
+        sharedPreferences.edit { putFloat("high_risk_threshold", score?.toFloat() ?: 0f) }
+    }
+    override fun getHighRiskThreshold(): Double?{
+        return sharedPreferences.getFloat("high_risk_threshold", 0f).toDouble()
     }
 
     override fun saveMoneyGuardToken(token: String?) {
@@ -237,5 +251,46 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
 
     override fun getIsLoggedOut(): Boolean {
         return sharedPreferences.getBoolean(LOGGED_OUT, false)
+    }
+
+    // Risk register implementation
+    override fun saveRiskToRegister(risk: String) {
+        val currentRisks = getRiskRegister().toMutableList()
+        if (!currentRisks.contains(risk)) {
+            currentRisks.add(risk)
+            val json = gson.toJson(currentRisks)
+            sharedPreferences.edit { putString(RISK_REGISTER, json) }
+        }
+    }
+
+    override fun getRiskRegister(): List<String> {
+        val json = sharedPreferences.getString(RISK_REGISTER, null)
+        return if (json != null) {
+            try {
+                gson.fromJson(json, Array<String>::class.java).toList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    override fun clearRiskRegister() {
+        sharedPreferences.edit { remove(RISK_REGISTER) }
+    }
+
+    override fun hasRisk(risk: String): Boolean {
+        return getRiskRegister().contains(risk)
+    }
+
+    // Current risk score implementation
+    override fun saveCurrentRiskScore(score: Int?) {
+        sharedPreferences.edit { putInt(CURRENT_RISK_SCORE, score ?: 0) }
+    }
+
+    override fun getCurrentRiskScore(): Int? {
+        val score = sharedPreferences.getInt(CURRENT_RISK_SCORE, 0)
+        return if (score > 0) score else null
     }
 }

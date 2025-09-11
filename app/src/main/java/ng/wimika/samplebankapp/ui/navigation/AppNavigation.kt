@@ -6,7 +6,7 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import android.util.Log
 import ng.wimika.samplebankapp.ui.screens.DashboardScreen
-import ng.wimika.samplebankapp.ui.screens.LoginScreen
+import ng.wimika.samplebankapp.ui.screens.Login.LoginScreen
 import ng.wimika.samplebankapp.ui.screens.OnboardingInfoScreen
 import ng.wimika.samplebankapp.ui.screens.AccountSelectionScreen
 import ng.wimika.samplebankapp.ui.screens.CheckDebitScreen
@@ -49,6 +49,7 @@ fun AppNavigation() {
     var showTrustDeviceDialog by remember { mutableStateOf(false) }
     var isProcessingTrust by remember { mutableStateOf(false) }
     var trustResult by remember { mutableStateOf<String?>(null) }
+    var loginViewModel by remember { mutableStateOf<ng.wimika.samplebankapp.ui.screens.Login.LoginViewModel?>(null) }
     
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -126,26 +127,47 @@ fun AppNavigation() {
         val preferenceManager = ng.wimika.samplebankapp.MoneyGuardClientApp.preferenceManager
         val sdkService = ng.wimika.samplebankapp.MoneyGuardClientApp.sdkService
         
-        // Clear all stored data
-        preferenceManager?.saveBankLoginDetails("", "")
-        preferenceManager?.saveMoneyGuardToken("")
-        preferenceManager?.saveMoneyguardUserNames("", "")
-        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Cleared all stored user data")
+        // Reset login view model state immediately for fast UI response
+        loginViewModel?.onEvent(ng.wimika.samplebankapp.ui.screens.Login.LoginEvent.OnLogout)
+        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Reset login view model state")
         
-        // Call SDK logout
-        sdkService?.authentication()?.logout()
-        Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Called SDK logout")
+        // Mark user as explicitly logged out immediately
+        preferenceManager?.saveLoggedOut(true)
+        
+        // Perform cleanup operations asynchronously to avoid blocking UI
+        scope.launch {
+            // Clear all stored data
+            preferenceManager?.saveBankLoginDetails("", "")
+            preferenceManager?.saveMoneyGuardToken("")
+            preferenceManager?.saveMoneyguardUserNames("", "")
+            Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Cleared all stored user data")
+            
+            // Call SDK logout asynchronously
+//            try {
+//                sdkService?.authentication()?.logout()
+//                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Called SDK logout")
+//            } catch (e: Exception) {
+//                Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Error during SDK logout: ${e.message}")
+//            }
+        }
         
         Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ User logout completed - Returning to login screen")
     }
 
     when (val screen = currentScreen) { // Use 'screen' for smart casting
         Screen.Login -> {
+            val viewModel = androidx.lifecycle.viewmodel.compose.viewModel { ng.wimika.samplebankapp.ui.screens.Login.LoginViewModel() }
+            
+            // Store the view model reference for logout
+            LaunchedEffect(viewModel) {
+                loginViewModel = viewModel
+            }
+            
             LoginScreen(
-                onLoginSuccess = {
+                viewModel = viewModel,
+                onNavigateToDashboard = {
                     currentScreen = Screen.Dashboard
                 },
-                // New navigation action for verification
                 onNavigateToVerification = {
                     Log.w("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 🔄 Navigating to typing pattern verification screen")
                     currentScreen = Screen.TypingPatternVerification(onResult = { isSuccess ->
@@ -166,6 +188,7 @@ fun AppNavigation() {
         Screen.Dashboard -> {
             DashboardScreen(
                 onLogout = {
+                    logoutUser()
                     currentScreen = Screen.Login
                 },
                 onProtectAccount = {
@@ -267,6 +290,8 @@ fun AppNavigation() {
                     currentScreen = Screen.Dashboard
                 },
                 onDownloadComplete = {
+                    // Ensure proper logout and state reset before navigating to login
+                    logoutUser()
                     currentScreen = Screen.Login
                 }
             )
@@ -279,6 +304,9 @@ fun AppNavigation() {
                 },
                 onBackClick = {
                     currentScreen = Screen.Dashboard
+                },
+                onDownloadMoneyGuard = {
+                    currentScreen = Screen.DownloadMoneyGuard
                 }
             )
         }

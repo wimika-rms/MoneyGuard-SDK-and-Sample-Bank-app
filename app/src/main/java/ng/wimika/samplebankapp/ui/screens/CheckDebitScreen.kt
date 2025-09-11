@@ -50,6 +50,8 @@ import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransactio
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.LatLng
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
+import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
+import ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus
 
 data class TransactionData(
     val sourceAccountNumber: String,
@@ -70,6 +72,7 @@ data class GeoLocation(
 fun CheckDebitScreen(
     onLocationPermissionDismissed: () -> Unit = {},
     onBackClick: () -> Unit = {},
+    onDownloadMoneyGuard: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -99,6 +102,10 @@ fun CheckDebitScreen(
     var alertConfirmAction by remember { mutableStateOf<() -> Unit>({}) }
     var alertSecondaryAction by remember { mutableStateOf<() -> Unit>({}) }
     
+    // Add new state variables for policy status
+    var moneyguardStatus by remember { mutableStateOf<MoneyGuardAppStatus?>(null) }
+    var showPolicyAlert by remember { mutableStateOf(false) }
+
     val enableButton = amount.isNotEmpty() && sourceAccountNumber.isNotEmpty() &&
                       destinationAccountNumber.isNotEmpty() && destinationBank.isNotEmpty() && 
                       !isLoading
@@ -116,18 +123,100 @@ fun CheckDebitScreen(
         }
     }
 
-    var identityCompromised = preferenceManager?.isIdentityCompromised();
-    if(identityCompromised == true)
-    {
-        showAlert = true;
-        alertTitle = "Identity Compromised";
-        alertMessage = "Your banking login credentials have been compromised, please update your password before you can proceed with your transaction.";
-        alertButtonText = "OK";
-        showSecondaryButton = false;
-        alertConfirmAction = { 
-            showAlert = false
-            onBackClick() // Navigate back to dashboard
-        };
+    // Add new LaunchedEffect to check policy status
+    LaunchedEffect(Unit) {
+        val token = preferenceManager?.getMoneyGuardToken() ?: ""
+        moneyguardStatus = MoneyGuardClientApp.sdkService?.utility()?.checkMoneyguardPolicyStatus(token)
+
+        if (moneyguardStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled) {
+            showPolicyAlert = true
+        }
+    }
+
+    // Consolidated security checks in proper priority order
+    LaunchedEffect(Unit) {
+        // HIGHEST PRIORITY: Risk score vs high risk threshold check
+        val currentRiskScore = preferenceManager?.getCurrentRiskScore() ?: 0
+        val highRiskThreshold = preferenceManager?.getHighRiskThreshold() ?: 0.0
+
+        if (currentRiskScore > 0 && currentRiskScore < highRiskThreshold) {
+            showAlert = true
+            alertTitle = "Low Risk Posture"
+            alertMessage = "Your risk posture is very low and you have pending issues that need to be resolved on the MoneyGuard App before you can proceed with transactions."
+            alertButtonText = "OK"
+            showSecondaryButton = false
+            alertConfirmAction = {
+                showAlert = false
+                onBackClick() // Navigate back to dashboard
+            }
+            return@LaunchedEffect // Exit early to prevent other checks
+        }
+
+        // SECOND PRIORITY: Identity compromised check
+        val identityCompromised = preferenceManager?.isIdentityCompromised() ?: false
+        if (identityCompromised) {
+            showAlert = true
+            alertTitle = "Identity Compromised"
+            alertMessage = "Your banking login credentials have been compromised, please update your password before you can proceed with your transaction."
+            alertButtonText = "OK"
+            showSecondaryButton = false
+            alertConfirmAction = {
+                showAlert = false
+                onBackClick() // Navigate back to dashboard
+            }
+            return@LaunchedEffect // Exit early to prevent other checks
+        }
+
+        // THIRD PRIORITY: Check for specific risks from risk register that prevent transactions
+        val riskRegister = preferenceManager?.getRiskRegister() ?: emptyList()
+
+        when {
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_APPLICATION_MALWARE_NAME) -> {
+                showAlert = true
+                alertTitle = "Malware Detected"
+                alertMessage = "Malware has been detected on your device that could compromise your transaction. Please remove the malware before proceeding with any financial transactions."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = {
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_NETWORK_WIFI_ENCRYPTION_NAME) ||
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_NETWORK_WIFI_PASSWORD_PROTECTION_NAME) -> {
+                showAlert = true
+                alertTitle = "Unsecure Network"
+                alertMessage = "You are connected to an unencrypted or unsecure WiFi network. Please disconnect and connect to a secure WiFi network before proceeding with your transaction."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = {
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_DEVICE_ROOT_OR_JAILBREAK_NAME) -> {
+                showAlert = true
+                alertTitle = "Device Security Compromised"
+                alertMessage = "Your device has been rooted/jailbroken which compromises its security. Financial transactions cannot be performed on this device for your safety."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = {
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+            riskRegister.contains(SpecificRisk.SPECIFIC_RISK_NETWORK_MITM_NAME) -> {
+                showAlert = true
+                alertTitle = "Network Security Risk"
+                alertMessage = "A man-in-the-middle attack has been detected on your network connection. Please change to a secure network before proceeding with your transaction."
+                alertButtonText = "OK"
+                showSecondaryButton = false
+                alertConfirmAction = {
+                    showAlert = false
+                    onBackClick() // Navigate back to dashboard
+                }
+            }
+        }
     }
 
 //    LaunchedEffect(hasLocationPermissions) {
@@ -406,6 +495,37 @@ fun CheckDebitScreen(
 //                        "Location permissions not granted"
 //                    }
 //                )
+            }
+
+            // Add new alert dialog for policy status (show first)
+            if (showPolicyAlert) {
+                AlertDialog(
+                    onDismissRequest = { showPolicyAlert = false },
+                    title = { Text("Protect your account") },
+                    text = {
+                        Text("For your security, we recommend installing MoneyGuard before proceeding with transactions.")
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showPolicyAlert = false
+                                onDownloadMoneyGuard() // Navigate to download screen
+                            }
+                        ) {
+                            Text("Download MoneyGuard")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                showPolicyAlert = false
+                                // User chooses to proceed anyway
+                            }
+                        ) {
+                            Text("Proceed anyway")
+                        }
+                    }
+                )
             }
 
             if (showAlert) {

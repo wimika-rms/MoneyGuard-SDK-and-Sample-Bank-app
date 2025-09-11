@@ -45,9 +45,16 @@ fun DashboardScreen(
     LaunchedEffect(key1 = Unit) {
         preferenceManager?.let { pref ->
             val token = pref.getMoneyGuardToken()
-            token?.let {
-                moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(it)
+            //token?.let {
+            if(token != null)
+            {
+                moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(token)
             }
+            else{
+                moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus("")
+            }
+
+            //}
         }
     }
 
@@ -392,6 +399,8 @@ private fun RiskScoreCard() {
                     if (currentRiskScore > 0) {
                         riskScore = currentRiskScore
                         isLoading = false
+                        // Persist the risk score for use in other screens
+                        preferenceManager?.saveCurrentRiskScore(currentRiskScore)
                        // break // Exit the loop once we get a valid score
                     }
                     

@@ -6,6 +6,9 @@ interface IPreferenceManager {
     fun saveMoneyGuardToken(token: String?)
     fun getMoneyGuardToken(): String?
 
+    fun saveHighRiskThreshold(score: Double?)
+    fun getHighRiskThreshold(): Double?
+
     fun setIdentityCompromised(compromised: Boolean)
     fun isIdentityCompromised(): Boolean?
 
@@ -49,6 +52,16 @@ interface IPreferenceManager {
     fun markAppProperlyClosed()
     fun wasAppForceClosedPreviously(): Boolean
     fun clearAllOnAppClose()
+
+    // Risk register management
+    fun saveRiskToRegister(risk: String)
+    fun getRiskRegister(): List<String>
+    fun clearRiskRegister()
+    fun hasRisk(risk: String): Boolean
+
+    // Current risk score management
+    fun saveCurrentRiskScore(score: Int?)
+    fun getCurrentRiskScore(): Int?
 
     fun clear()
 }
