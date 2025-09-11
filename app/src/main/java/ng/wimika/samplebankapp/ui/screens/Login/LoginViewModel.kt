@@ -194,17 +194,17 @@ class LoginViewModel(
     }
 
     private suspend fun registerWithMoneyGuard(sessionId: String): RegistrationResult {
-        return try {
-            val resultFlow = sdkService?.authentication()?.register(
-                parteBankId = Constants.PARTNER_BANK_ID,
+
+        var finalResult = RegistrationResult.NEEDS_VERIFICATION
+
+        try {
+            val result = sdkService?.authentication()?.register(
+                partnerBankId = Constants.PARTNER_BANK_ID,
                 partnerSessionToken = sessionId
             )
 
-            val finalResult = resultFlow?.first { it !is MoneyGuardResult.Loading }
-
-            when (finalResult) {
-                is MoneyGuardResult.Success -> {
-                    val response = finalResult.data
+            result?.fold(
+                onSuccess = { response ->
                     if (response.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(response.token)
                         preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
@@ -214,17 +214,20 @@ class LoginViewModel(
                     if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa
                         && sdkService?.utility()?.checkMoneyguardPolicyStatus(response.token) == MoneyGuardAppStatus.Active
                     ) {
-                        RegistrationResult.NEEDS_VERIFICATION
+                        finalResult = RegistrationResult.NEEDS_VERIFICATION
                     } else {
-                        RegistrationResult.SUCCESS
+                        finalResult = RegistrationResult.SUCCESS
                     }
+                },
+                onFailure = {
+                    finalResult = RegistrationResult.SUCCESS
                 }
-                is MoneyGuardResult.Failure -> RegistrationResult.SUCCESS // Fail open: proceed even if registration fails
-                else -> RegistrationResult.SUCCESS // Fail open
-            }
+            )
         } catch (e: Exception) {
-            RegistrationResult.SUCCESS // Fail open
+            finalResult = RegistrationResult.SUCCESS // Fail open
         }
+
+        return finalResult
     }
 
     private fun handlePostLoginFlow() {
@@ -256,25 +259,33 @@ class LoginViewModel(
                     hashAlgorithm = HashAlgorithm.SHA256
                 )
 
-                sdkService?.authentication()?.credentialCheck(token, credential) { result ->
-                    val statusText = if (result is MoneyGuardResult.Success) {
-                        if (result.data.status == RiskStatus.RISK_STATUS_UNSAFE) {
+                val result = sdkService?.authentication()?.credentialCheck(token, credential)
+                result?.fold(
+                    onSuccess = { response ->
+                        if (response.status == RiskStatus.RISK_STATUS_UNSAFE) {
                             preferenceManager?.setIdentityCompromised(true)
                             preferenceManager?.saveRiskToRegister("identity_compromise")
                         }
-                        "Credential Check - ${result.data.status}"
-                    }
-                    else {
-                        "Credential Check - Could not determine status"
-                    }
-                    viewModelScope.launch {
-                        _sideEffect.send(
-                            LoginSideEffect.ShowCredentialDialog(
-                                statusText
+                        viewModelScope.launch {
+                            _sideEffect.send(
+                                LoginSideEffect.ShowCredentialDialog(
+                                    "Credential Check - ${response.status}"
+                                )
                             )
-                        )
+                        }
+                    },
+                    onFailure = {
+                        // Failsafe: proceed to location check if credential check has an error
+                        performLocationCheck()
+//                        viewModelScope.launch {
+//                            _sideEffect.send(
+//                                LoginSideEffect.ShowCredentialDialog(
+//                                    "Credential Check - Could not determine status"
+//                                )
+//                            )
+//                        }
                     }
-                }
+                )
             } catch (e: Exception) {
                 // Failsafe: proceed to location check if credential check has an error
                 performLocationCheck()
@@ -290,20 +301,30 @@ class LoginViewModel(
             }
 
             try {
-                val response = sdkService?.utility()?.checkLocation(token)
+                val result = sdkService?.utility()?.checkLocation(token)
 
-                //Use joinToString to format the list with a newline for each item
-                val formattedList = response?.data?.joinToString(separator = "\n") { item ->
-                    "  - $item" // 'item' will use the data class's automatic toString()
-                } ?: "null" // Handle the case where the list itself is null
+                result?.fold(
+                    onSuccess = { response ->
+                        //Use joinToString to format the list with a newline for each item
+                        val formattedList = response?.data?.joinToString(separator = "\n") { item ->
+                            "  - $item" // 'item' will use the data class's automatic toString()
+                        } ?: "null" // Handle the case where the list itself is null
 
-                Log.i(LOG_TAG, "[SampleBankApp|LoginviewModel] Location check:\n$formattedList")
-                if (response?.data?.isNotEmpty() == true) {
-                    preferenceManager?.saveRiskToRegister("unusual_location")
-                    _sideEffect.send(LoginSideEffect.ShowUnusualLocationDialog)
-                } else {
-                    _sideEffect.send(LoginSideEffect.NavigateToDashboard)
-                }
+                        Log.i(LOG_TAG, "[SampleBankApp|LoginviewModel] Location check:\n$formattedList")
+                        if (response?.data?.isNotEmpty() == true) {
+                            preferenceManager?.saveRiskToRegister("unusual_location")
+                            _sideEffect.send(LoginSideEffect.ShowUnusualLocationDialog)
+                        } else {
+                            _sideEffect.send(LoginSideEffect.NavigateToDashboard)
+                        }
+                    },
+                    onFailure = { e ->
+                        Log.e(LOG_TAG, "[SampleBankApp|LoginviewModel] ❌ Error during location check: ${e.message}")
+                        // Failsafe: proceed to dashboard if location check fails
+                        _sideEffect.send(LoginSideEffect.NavigateToDashboard)
+                    }
+                )
+
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "[SampleBankApp|LoginviewModel] ❌ Error during location check: ${e.message}")
                 // Failsafe: proceed to dashboard if location check fails
