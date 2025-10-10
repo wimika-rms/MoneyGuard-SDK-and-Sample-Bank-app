@@ -1,6 +1,7 @@
 # MoneyGuard SDK
 
-The MoneyGuard SDK is a powerful Android library that enables seamless integration of MoneyGuard's financial protection services into your Android application. This SDK provides a comprehensive set of features for managing policies, claims, and transaction security.
+The MoneyGuard SDK is an Android library that enables seamless integration of MoneyGuard protection into your Android application. This SDK provides a comprehensive set of features for onboarding to MoneyGuard, enabling protection, managing policy, claims, and transaction security.
+This repo contains a sample bank app that let's you see an example to guide you with integrating the MoneyGuard SDK.
 
 ## Features
 
