@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,7 +86,10 @@ fun ClaimsDetailsScreen(
                     ) 
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackPressed) {
+                    IconButton(
+                        onClick = onBackPressed,
+                        modifier = Modifier.testTag("claims_details_back_button")
+                    ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -159,7 +163,8 @@ fun ClaimsDetailsScreen(
                                     }
                                 )
                             }
-                        }
+                        },
+                        modifier = Modifier.testTag("claims_details_retry_button")
                     ) {
                         Text("Retry")
                     }

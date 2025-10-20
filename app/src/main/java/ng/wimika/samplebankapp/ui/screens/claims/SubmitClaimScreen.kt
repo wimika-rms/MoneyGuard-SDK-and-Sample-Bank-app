@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
@@ -357,7 +358,10 @@ fun SubmitClaimScreen(
                     ) 
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackPressed) {
+                    IconButton(
+                        onClick = onBackPressed,
+                        modifier = Modifier.testTag("submit_claim_back_button")
+                    ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -437,7 +441,9 @@ fun SubmitClaimScreen(
                     onEvent(SubmitClaimEvent.LossAmountChanged(amount))
                 },
                 label = { Text("Loss Amount") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("submit_claim_loss_amount_input"),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -453,10 +459,15 @@ fun SubmitClaimScreen(
                 } ?: "",
                 onValueChange = { },
                 label = { Text("Loss Date") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("submit_claim_loss_date_input"),
                 readOnly = true,
                 trailingIcon = {
-                    IconButton(onClick = { onEvent(SubmitClaimEvent.ShowDatePicker) }) {
+                    IconButton(
+                        onClick = { onEvent(SubmitClaimEvent.ShowDatePicker) },
+                        modifier = Modifier.testTag("submit_claim_date_picker_button")
+                    ) {
                         Icon(
                             imageVector = Icons.Default.DateRange,
                             contentDescription = "Select Date",
@@ -477,7 +488,8 @@ fun SubmitClaimScreen(
                 label = { Text("Statement") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .height(120.dp)
+                    .testTag("submit_claim_statement_input"),
                 maxLines = 5,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -511,7 +523,9 @@ fun SubmitClaimScreen(
                                 permissionLauncher.launch(permissions)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("submit_claim_add_files_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -649,7 +663,8 @@ fun SubmitClaimScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = 16.dp)
+                    .testTag("submit_claim_submit_button"),
                 enabled = state.shouldEnableButton
             ) {
                 if (state.isLoading) {

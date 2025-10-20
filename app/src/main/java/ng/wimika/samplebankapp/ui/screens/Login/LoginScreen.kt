@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,12 +44,15 @@ fun SabiTextField(
     placeholder: String,
     keyboardOptions: KeyboardOptions,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    testTag: String = ""
 ) {
     TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),
         placeholder = { Text(placeholder, color = SabiBankColors.TextOnOrange.copy(alpha = 0.7f)) },
         shape = RoundedCornerShape(16.dp),
         colors = TextFieldDefaults.colors(
@@ -125,9 +129,9 @@ fun LoginScreen(
             }
 
             // --- Dialogs and Modals ---
-            if (uiState.isPrelaunchChecking) {
-                SecurityCheckOverlay()
-            }
+//            if (uiState.isPrelaunchChecking) {
+//                SecurityCheckOverlay()
+//            }
 
             if (showRiskModal) {
                 RiskBottomSheet(
@@ -222,7 +226,8 @@ private fun LoginForm(
             value = uiState.username,
             onValueChange = { onEvent(LoginEvent.OnUsernameChange(it)) },
             placeholder = "Username",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+            testTag = "login_username_input"
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -233,14 +238,18 @@ private fun LoginForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { onEvent(LoginEvent.OnTogglePasswordVisibility) }) {
+                IconButton(
+                    onClick = { onEvent(LoginEvent.OnTogglePasswordVisibility) },
+                    modifier = Modifier.testTag("login_password_visibility_toggle")
+                ) {
                     Icon(
                         imageVector = if (uiState.isPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                         contentDescription = if (uiState.isPasswordVisible) "Hide password" else "Show password",
                         tint = SabiBankColors.TextOnOrange
                     )
                 }
-            }
+            },
+            testTag = "login_password_input"
         )
 
         if (uiState.errorMessage != null) {
@@ -265,7 +274,10 @@ private fun LoginForm(
 
         Button(
             onClick = { onEvent(LoginEvent.OnLoginClick) },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .testTag("login_submit_button"),
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(
                 containerColor = SabiBankColors.White,
@@ -303,6 +315,7 @@ private fun DebugLogToggle(isChecked: Boolean, onCheckedChange: (Boolean) -> Uni
         Switch(
             checked = isChecked,
             onCheckedChange = onCheckedChange,
+            modifier = Modifier.testTag("login_debug_logs_switch"),
             colors = SwitchDefaults.colors(
                 checkedThumbColor = SabiBankColors.White,
                 checkedTrackColor = SabiBankColors.White.copy(alpha = 0.7f),
@@ -377,13 +390,13 @@ private fun UnusualLocationDialog(onVerify: () -> Unit, onProceed: () -> Unit) {
 private fun UntrustedDeviceDialog(onProceedToVerification: () -> Unit) {
     AlertDialog(
         onDismissRequest = { /* Prevent dismissing */ },
-        title = { 
+        title = {
             Text(
                 text = "Device Verification Required",
                 fontWeight = FontWeight.Bold
-            ) 
+            )
         },
-        text = { 
+        text = {
             Column {
                 Text(
                     text = "You are logging in from a different device than where MoneyGuard was initially installed.",
@@ -402,8 +415,8 @@ private fun UntrustedDeviceDialog(onProceedToVerification: () -> Unit) {
                 colors = ButtonDefaults.buttonColors(
                     containerColor = SabiBankColors.OrangePrimary
                 )
-            ) { 
-                Text("Proceed to Verification") 
+            ) {
+                Text("Proceed to Verification")
             }
         }
     )

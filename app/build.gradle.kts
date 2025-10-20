@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "ng.wimika.samplebankapp"
-        minSdk = 24
+        minSdk = 29
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -70,7 +70,7 @@ dependencies {
     implementation(libs.okhttp3.logging)
     implementation(libs.gson.converter)
 
-    
+
     implementation("joda-time:joda-time:2.12.5")
     implementation("com.google.android.gms:play-services-location:21.2.0")
     implementation(libs.coil.compose)

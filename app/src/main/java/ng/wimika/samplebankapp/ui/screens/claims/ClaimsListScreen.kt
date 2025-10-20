@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,7 +91,8 @@ fun ClaimsStatusFilter(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor()
+                        .testTag("claims_list_filter_dropdown"),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = MaterialTheme.colorScheme.onSurface,
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurface
@@ -212,7 +214,10 @@ fun ClaimsListScreen(
                     ) 
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackPressed) {
+                    IconButton(
+                        onClick = onBackPressed,
+                        modifier = Modifier.testTag("claims_list_back_button")
+                    ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -221,7 +226,10 @@ fun ClaimsListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onEvent(ClaimsListEvent.RefreshClaims) }) {
+                    IconButton(
+                        onClick = { onEvent(ClaimsListEvent.RefreshClaims) },
+                        modifier = Modifier.testTag("claims_list_refresh_button")
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refresh",
@@ -237,7 +245,8 @@ fun ClaimsListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onSubmitNewClaim,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("claims_list_submit_new_claim_fab")
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -356,7 +365,8 @@ fun ClaimsListScreen(
                     items(state.claims) { claim ->
                         ClaimListItem(
                             claim = claim,
-                            onClick = { onClaimClick(claim.id) }
+                            onClick = { onClaimClick(claim.id) },
+                            testTag = "claims_list_item_${claim.id}"
                         )
                     }
                 }
@@ -473,12 +483,14 @@ fun SummaryItem(
 @Composable
 fun ClaimListItem(
     claim: ClaimResponse,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    testTag: String = ""
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface

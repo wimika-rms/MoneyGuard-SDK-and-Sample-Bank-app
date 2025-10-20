@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -399,7 +400,10 @@ fun CheckDebitScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.testTag("check_debit_back_button")
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -416,7 +420,10 @@ fun CheckDebitScreen(
                     .padding(16.dp)
             ) {
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .testTag("check_debit_amount_input"),
                     value = amount,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     onValueChange = { newAmount ->
@@ -431,7 +438,8 @@ fun CheckDebitScreen(
                 OutlinedTextField(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = 8.dp)
+                        .testTag("check_debit_source_account_input"),
                     value = sourceAccountNumber,
                     onValueChange = { sourceAccountNumber = it },
                     label = { Text("Source Account Number") },
@@ -444,6 +452,7 @@ fun CheckDebitScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
+                        .testTag("check_debit_destination_account_input")
                 )
 
                 OutlinedTextField(
@@ -453,6 +462,7 @@ fun CheckDebitScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
+                        .testTag("check_debit_destination_bank_input")
                 )
 
                 OutlinedTextField(
@@ -461,7 +471,8 @@ fun CheckDebitScreen(
                     label = { Text("Memo") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = 8.dp)
+                        .testTag("check_debit_memo_input"),
                     minLines = 3
                 )
 
@@ -472,7 +483,10 @@ fun CheckDebitScreen(
                     ),
                     enabled = enableButton,
                     onClick = { handleCheckDebitClick() },
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                        .testTag("check_debit_submit_button")
                         //.height(56.dp)
 
                 ) {

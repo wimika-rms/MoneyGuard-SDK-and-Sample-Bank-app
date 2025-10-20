@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
@@ -107,7 +108,8 @@ fun DashboardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 32.dp) // Add padding at the bottom of the screen
-                        .height(50.dp),
+                        .height(50.dp)
+                        .testTag("dashboard_logout_button"),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, Color(0xFFF97316))
                 ) {
@@ -162,6 +164,7 @@ private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardApp
 
                 // TODO: Handle "Launch MoneyGuard" action when protected
             },
+            modifier = Modifier.testTag("dashboard_protect_account_button"),
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
@@ -289,8 +292,13 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             // Fixed icons to use core material library
 
-            ActionCard(icon = Icons.Default.StarBorder, text = "Make\nTransfer",
-                modifier = Modifier.weight(1f), onClick = onCheckDebitClick)
+            ActionCard(
+                icon = Icons.Default.StarBorder,
+                text = "Make\nTransfer",
+                modifier = Modifier.weight(1f),
+                onClick = onCheckDebitClick,
+                testTag = "dashboard_make_transfer_button"
+            )
 
             // Conditionally show the "Enroll" button
             if (showTypingPatternActions) {
@@ -298,7 +306,8 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
                     icon = Icons.Default.Security,
                     text = "Enroll\nTyping Pattern",
                     modifier = Modifier.weight(1f),
-                    onClick = onEnrollTypingPattern
+                    onClick = onEnrollTypingPattern,
+                    testTag = "dashboard_enroll_typing_button"
                 )
             } else {
                 // Add an empty placeholder to maintain grid alignment
@@ -311,7 +320,8 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
                     icon = Icons.Default.Fingerprint,
                     text = "Verify\nTyping Pattern",
                     modifier = Modifier.weight(1f),
-                    onClick = onVerifyTypingPattern
+                    onClick = onVerifyTypingPattern,
+                    testTag = "dashboard_verify_typing_button"
                 )
             } else {
                 // Add an empty placeholder to maintain grid alignment
@@ -326,7 +336,8 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
                     icon = Icons.Default.Receipt,
                     text = "Claims",
                     modifier = Modifier.weight(1f),
-                    onClick = onNavigateToClaims
+                    onClick = onNavigateToClaims,
+                    testTag = "dashboard_claims_button"
                 )
 
                 // Add empty placeholders to maintain grid alignment
@@ -339,9 +350,17 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
 }
 
 @Composable
-private fun ActionCard(icon: ImageVector, text: String, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
+private fun ActionCard(
+    icon: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+    testTag: String = ""
+) {
     Card(
-        modifier = modifier.height(110.dp),
+        modifier = modifier
+            .height(110.dp)
+            .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

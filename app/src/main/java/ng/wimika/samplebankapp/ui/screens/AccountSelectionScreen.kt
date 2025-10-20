@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,7 +106,9 @@ fun AccountSelectionScreen(
                 ) {
                     IconButton(
                         onClick = onBack,
-                        modifier = Modifier.offset(x = -12.dp)
+                        modifier = Modifier
+                            .offset(x = -12.dp)
+                            .testTag("account_selection_back_button")
                     ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                     }
@@ -142,6 +145,7 @@ fun AccountSelectionScreen(
                             selectedAccounts = newSelection
                             flowState?.setSelectedAccountIds(newSelection)
                         },
+                        modifier = Modifier.testTag("account_selection_select_all_radio"),
                         colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
                     )
                     Text(
@@ -178,7 +182,8 @@ fun AccountSelectionScreen(
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .background(Color.White, shape = RoundedCornerShape(16.dp))
-                                    .padding(16.dp),
+                                    .padding(16.dp)
+                                    .testTag("account_selection_item_${account.id}"),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
@@ -192,6 +197,7 @@ fun AccountSelectionScreen(
                                         selectedAccounts = newSelection
                                         flowState?.setSelectedAccountIds(newSelection)
                                     },
+                                    modifier = Modifier.testTag("account_selection_radio_${account.id}"),
                                     colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF8854F6))
                                 )
                                 Column(
@@ -225,7 +231,8 @@ fun AccountSelectionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 8.dp)
+                        .testTag("account_selection_next_button"),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8854F6)),
                     enabled = selectedAccounts.isNotEmpty()

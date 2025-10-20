@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -171,7 +172,10 @@ fun TypingPatternScreen(
                 TopAppBar(
                     title = { Text("Please type the words shown below") },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.testTag("typing_pattern_enroll_back_button")
+                        ) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                         }
                     },
@@ -203,6 +207,7 @@ fun TypingPatternScreen(
                         EditText(ctx).apply {
                             id = TYPING_PROFILE_INPUT_ID
                             hint = "Type here"
+                            contentDescription = "typing_pattern_enroll_input"
                             setHintTextColor(Color.Gray.toArgb())
                             setTextColor(Color.Black.toArgb())
                             setBackgroundColor(Color(0xFFF5F6FA).toArgb())
@@ -220,7 +225,11 @@ fun TypingPatternScreen(
                             editText = this
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .testTag("typing_pattern_enroll_input")
                 )
 
                 Spacer(Modifier.weight(1f))
@@ -284,7 +293,10 @@ fun TypingPatternScreen(
                         }
                     },
                     enabled = userInput.isNotBlank() && !isLoading && !showSuccessBanner,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .testTag("typing_pattern_enroll_submit_button"),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF8854F6),
