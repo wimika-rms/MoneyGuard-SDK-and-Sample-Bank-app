@@ -19,6 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+
+// For setting the testTag property inside the semantics block
+import androidx.compose.ui.semantics.testTag
+
+// For setting the contentDescription property (the other method we discussed)
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -30,9 +37,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import ng.wimika.moneyguard_sdk.services.in_app_content.models.InAppContentResponse
 import ng.wimika.samplebankapp.R
 import ng.wimika.samplebankapp.ui.theme.SabiBankColors
 import ng.wimika.samplebankapp.Constants
+import ng.wimika.samplebankapp.MoneyGuardClientApp
+import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
 
 // A reusable custom TextField composable to match the design
@@ -52,7 +62,12 @@ fun SabiTextField(
         onValueChange = onValueChange,
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),
+            .semantics {
+                // Apply the passed-in testTag inside the semantics block
+                if (testTag.isNotEmpty()) {
+                    this.testTag = testTag
+                }
+            },
         placeholder = { Text(placeholder, color = SabiBankColors.TextOnOrange.copy(alpha = 0.7f)) },
         shape = RoundedCornerShape(16.dp),
         colors = TextFieldDefaults.colors(
@@ -277,7 +292,9 @@ private fun LoginForm(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
-                .testTag("login_submit_button"),
+                .semantics {
+                testTag = "login_submit_button"
+            },
             shape = RoundedCornerShape(50),
             colors = ButtonDefaults.buttonColors(
                 containerColor = SabiBankColors.White,
@@ -363,10 +380,41 @@ private fun RiskBottomSheet(message: String, onDismiss: () -> Unit) {
 
 @Composable
 private fun CredentialCheckDialog(status: String, onDismiss: () -> Unit) {
+    val token = preferenceManager?.getMoneyGuardToken()
+    val sdkService: ng.wimika.moneyguard_sdk.services.MoneyGuardSdkService? = MoneyGuardClientApp.sdkService
+    
+    var inAppContentResponse by remember { mutableStateOf<InAppContentResponse?>(null) }
+
+    LaunchedEffect(Unit) {
+        token?.let {
+            val result = sdkService?.inAppContent()?.getInAppContent(it, 101)
+            result?.onSuccess { response ->
+                inAppContentResponse = response
+            }
+        }
+    }
+
+    var dialogTitle = inAppContentResponse?.compromisedCredentialDialog?.title;
+    if(dialogTitle == null || dialogTitle == ""){
+        dialogTitle = "Credential Check"
+    }
+
+    
+    var dialogMsg = status;
+
+    if(status == "RISK_STATUS_UNSAFE")
+    {
+        if (inAppContentResponse?.compromisedCredentialDialog?.body != null)
+        {
+            dialogMsg = inAppContentResponse?.compromisedCredentialDialog?.body.toString();
+        }
+
+    }
+
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("Credential Check") },
-        text = { Text(status) },
+        title = { Text(dialogTitle) },
+        text = { Text(dialogMsg) },
         confirmButton = { Button(onClick = onDismiss) { Text("OK") } }
     )
 }
