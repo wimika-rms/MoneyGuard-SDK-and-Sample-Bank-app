@@ -22,11 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ng.wimika.moneyguard_sdk.services.onboarding_info.OnboardingInfo
-import ng.wimika.moneyguard_sdk.services.onboarding_info.models.OnboardingInfoResult
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.R
 import androidx.compose.ui.graphics.Color
+import ng.wimika.moneyguard_sdk.services.in_app_content.models.InAppContentResponse
+import ng.wimika.moneyguard_sdk.services.in_app_content.models.MobileContentItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,12 +35,13 @@ fun OnboardingInfoScreen(
     onLearnMore: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    val onboardingInfoService: OnboardingInfo? = MoneyGuardClientApp.sdkService?.onboardingInfo()
+    val sdkService = MoneyGuardClientApp.sdkService
     val token = MoneyGuardClientApp.preferenceManager?.getMoneyGuardToken()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
-    var onboardingData by remember { mutableStateOf<OnboardingInfoResult?>(null) }
+    var onboardingSlides by remember { mutableStateOf<List<MobileContentItem>>(emptyList()) }
+    var learnMoreUrl by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var currentPage by remember { mutableStateOf(0) }
     
@@ -56,12 +57,14 @@ fun OnboardingInfoScreen(
     
     // Load onboarding info when screen is first loaded
     LaunchedEffect(Unit) {
-        if (onboardingInfoService != null && !token.isNullOrEmpty()) {
+        if (sdkService != null && !token.isNullOrEmpty()) {
             try {
-                val result = onboardingInfoService.getOnboardingInfo(token)
-                result.onSuccess { data ->
-                    onboardingData = data
-                }.onFailure { exception ->
+                val result = sdkService.inAppContent()?.getInAppContent(token, 1)
+                result?.onSuccess { response ->
+                    onboardingSlides = response.onboardingSlides
+                    // Set learn more URL - you may need to adjust this based on your requirements
+                    learnMoreUrl = "https://moneyguard.ng/learn-more" // Default fallback
+                }?.onFailure { exception ->
                     Toast.makeText(
                         context,
                         "Failed to load onboarding info: ${exception.message}",
@@ -120,7 +123,7 @@ fun OnboardingInfoScreen(
                 CircularProgressIndicator()
             }
         } else {
-            onboardingData?.let { data ->
+            if (onboardingSlides.isNotEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -151,13 +154,13 @@ fun OnboardingInfoScreen(
                                 .verticalScroll(rememberScrollState())
                                 .pointerInput(Unit) {
                                     detectDragGestures { _, dragAmount ->
-                                        if (data.infoList.size > 1) {
+                                        if (onboardingSlides.size > 1) {
                                             val threshold = 50f
                                             when {
                                                 dragAmount.x > threshold && currentPage > 0 -> {
                                                     currentPage--
                                                 }
-                                                dragAmount.x < -threshold && currentPage < data.infoList.size - 1 -> {
+                                                dragAmount.x < -threshold && currentPage < onboardingSlides.size - 1 -> {
                                                     currentPage++
                                                 }
                                             }
@@ -167,11 +170,11 @@ fun OnboardingInfoScreen(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            if (data.infoList.isNotEmpty()) {
-                                val currentInfo = data.infoList[currentPage]
-                                // Title (bold, large)
+                            val currentSlide = onboardingSlides[currentPage]
+                            // Title (bold, large)
+                            currentSlide.title?.let { title ->
                                 Text(
-                                    text = currentInfo.title,
+                                    text = title,
                                     style = MaterialTheme.typography.headlineSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 22.sp
@@ -180,9 +183,11 @@ fun OnboardingInfoScreen(
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(bottom = 16.dp)
                                 )
-                                // Body (regular)
+                            }
+                            // Body/Description (regular)
+                            currentSlide.description?.let { description ->
                                 Text(
-                                    text = currentInfo.body,
+                                    text = description,
                                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                                     color = Color(0xFF6B6B6B),
                                     textAlign = TextAlign.Center,
@@ -192,13 +197,13 @@ fun OnboardingInfoScreen(
                         }
                     }
                     // Pager indicator
-                    if (data.infoList.size > 1) {
+                    if (onboardingSlides.size > 1) {
                         Row(
                             modifier = Modifier.height(16.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            repeat(data.infoList.size) { index ->
+                            repeat(onboardingSlides.size) { index ->
                                 Box(
                                     modifier = Modifier
                                         .padding(horizontal = 4.dp)
@@ -231,20 +236,21 @@ fun OnboardingInfoScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     // Learn More
-                    TextButton(
-                        //onClick = { onLearnMore(data.learnMoreUrl) },
-                        onClick = { onLearnMore(data.learnMoreUrl) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Learn More",
-                            color = Color(0xFF8854F6),
-                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp)
-                        )
+                    if (learnMoreUrl.isNotEmpty()) {
+                        TextButton(
+                            onClick = { onLearnMore(learnMoreUrl) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Learn More",
+                                color = Color(0xFF8854F6),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp)
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
-            } ?: run {
+            } else {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

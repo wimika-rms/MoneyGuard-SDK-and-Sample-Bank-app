@@ -415,10 +415,32 @@ private fun CredentialCheckDialog(status: String, onDismiss: () -> Unit) {
 
 @Composable
 private fun UnusualLocationDialog(onVerify: () -> Unit, onProceed: () -> Unit) {
+    val token = preferenceManager?.getMoneyGuardToken()
+    val sdkService: ng.wimika.moneyguard_sdk.services.MoneyGuardSdkService? = MoneyGuardClientApp.sdkService
+    
+    var inAppContentResponse by remember { mutableStateOf<InAppContentResponse?>(null) }
+
+    LaunchedEffect(Unit) {
+        token?.let {
+            val result = sdkService?.inAppContent()?.getInAppContent(it, 1)
+            result?.onSuccess { response ->
+                inAppContentResponse = response
+            }
+        }
+    }
+
+    // Use in-app content if available, otherwise use default hardcoded values
+    val dialogTitle = inAppContentResponse?.unusualLocationDialog?.title
+        .takeIf { !it.isNullOrEmpty() } ?: "Unusual Location Detected"
+    
+    val dialogBody = inAppContentResponse?.unusualLocationDialog?.body
+        .takeIf { !it.isNullOrEmpty() } 
+        ?: "We've detected a login from an unusual location. For your security, please verify your identity. If you proceed without verification, some account activities may be limited."
+
     AlertDialog(
         onDismissRequest = { /* Prevent dismissing */ },
-        title = { Text("Unusual Location Detected") },
-        text = { Text("We've detected a login from an unusual location. For your security, please verify your identity. If you proceed without verification, some account activities may be limited.") },
+        title = { Text(dialogTitle) },
+        text = { Text(dialogBody) },
         confirmButton = {
             Button(onClick = onVerify) { Text("Verify") }
         },
@@ -430,26 +452,41 @@ private fun UnusualLocationDialog(onVerify: () -> Unit, onProceed: () -> Unit) {
 
 @Composable
 private fun UntrustedDeviceDialog(onProceedToVerification: () -> Unit) {
+    val token = preferenceManager?.getMoneyGuardToken()
+    val sdkService: ng.wimika.moneyguard_sdk.services.MoneyGuardSdkService? = MoneyGuardClientApp.sdkService
+    
+    var inAppContentResponse by remember { mutableStateOf<InAppContentResponse?>(null) }
+
+    LaunchedEffect(Unit) {
+        token?.let {
+            val result = sdkService?.inAppContent()?.getInAppContent(it, 1)
+            result?.onSuccess { response ->
+                inAppContentResponse = response
+            }
+        }
+    }
+
+    // Use in-app content if available, otherwise use default hardcoded values
+    val dialogTitle = inAppContentResponse?.trustedDeviceDialog?.title
+        .takeIf { !it.isNullOrEmpty() } ?: "Device Verification Required"
+    
+    val dialogBody = inAppContentResponse?.trustedDeviceDialog?.body
+        .takeIf { !it.isNullOrEmpty() } 
+        ?: "You are logging in from a different device than where MoneyGuard was initially installed.\n\nFor your security, we need to verify your identity before we can enable Moneyguard protection on this device."
+
     AlertDialog(
         onDismissRequest = { /* Prevent dismissing */ },
         title = {
             Text(
-                text = "Device Verification Required",
+                text = dialogTitle,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
-            Column {
-                Text(
-                    text = "You are logging in from a different device than where MoneyGuard was initially installed.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "For your security, we need to verify your identity before we can enable Moneyguard protection on this device.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            Text(
+                text = dialogBody,
+                style = MaterialTheme.typography.bodyMedium
+            )
         },
         confirmButton = {
             Button(
