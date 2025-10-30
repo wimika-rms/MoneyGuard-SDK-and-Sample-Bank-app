@@ -387,28 +387,22 @@ private fun CredentialCheckDialog(status: String, onDismiss: () -> Unit) {
 
     LaunchedEffect(Unit) {
         token?.let {
-            val result = sdkService?.inAppContent()?.getInAppContent(it, 101)
+            val result = sdkService?.inAppContent()?.getInAppContent(it, 1)
             result?.onSuccess { response ->
                 inAppContentResponse = response
             }
         }
     }
 
-    var dialogTitle = inAppContentResponse?.compromisedCredentialDialog?.title;
-    if(dialogTitle == null || dialogTitle == ""){
-        dialogTitle = "Credential Check"
-    }
+    // Use Elvis operator for default value and takeIf for cleaner null/empty check
+    val dialogTitle = inAppContentResponse?.compromisedCredentialDialog?.title
+        .takeIf { !it.isNullOrEmpty() } ?: "Credential Check"
 
-    
-    var dialogMsg = status;
-
-    if(status == "RISK_STATUS_UNSAFE")
-    {
-        if (inAppContentResponse?.compromisedCredentialDialog?.body != null)
-        {
-            dialogMsg = inAppContentResponse?.compromisedCredentialDialog?.body.toString();
-        }
-
+    // Get dialog message from SDK if status is UNSAFE, otherwise use status
+    val dialogMsg = if (status == "RISK_STATUS_UNSAFE") {
+        inAppContentResponse?.compromisedCredentialDialog?.body ?: status
+    } else {
+        status
     }
 
     AlertDialog(
