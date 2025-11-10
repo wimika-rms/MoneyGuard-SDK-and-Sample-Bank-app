@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
-    <!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>-->
-    <!--    <uses-permission android:name="android.permission.TYPE_APPLICATION_OVERLAY"/>-->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.TYPE_APPLICATION_OVERLAY"/>
     <!--    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />-->
     <!--    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>-->
     <uses-permission android:name="android.permission.INTERNET"/>

@@ -272,7 +272,9 @@ fun TypingPatternScreen(
                                         currentStep++
                                         userInput = ""
                                         editText?.setText("")
-                                        sdkService.getTypingProfile().resetService()
+                                        //sdkService.getTypingProfile().resetService()
+                                        sdkService.getTypingProfile().stopService()
+                                        sdkService.getTypingProfile().startService(context as Activity, intArrayOf(TYPING_PROFILE_INPUT_ID))
                                         addDebugLog("Moving to next step")
                                     }
                                 } else {
