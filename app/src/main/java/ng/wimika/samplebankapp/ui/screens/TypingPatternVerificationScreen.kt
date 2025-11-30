@@ -68,14 +68,14 @@ fun TypingPatternVerificationScreen(
     var hasSharedLogs by remember { mutableStateOf(false) }
 
     // Get user's name for the prompt text
-    //val firstName = preferenceManager?.getMoneyguardFirstName()?.takeIf { it.isNotBlank() } ?: "John"
+    val firstName = preferenceManager?.getMoneyguardFirstName()?.takeIf { it.isNotBlank() } ?: "John"
     //val lastName = preferenceManager?.getMoneyguardLastName()?.takeIf { it.isNotBlank() } ?: "Doe"
     val fullName = preferenceManager?.getBankUserFullName()?.takeIf { it.isNotBlank() } ?: "John Doe"
 
     val textToType by remember {
         //mutableStateOf("hello, my name is $firstName $lastName")
-        //mutableStateOf("hello, my name is $fullName")
-        mutableStateOf("your typing biometrics are unique and natural")
+        mutableStateOf("hello, my name is $firstName")
+        //mutableStateOf("arcbishopzoe5@email.com")
     }
 
     // Function to add debug logs
@@ -158,6 +158,7 @@ fun TypingPatternVerificationScreen(
                         onClick = {
                             scope.launch {
                                 addDebugLog("User cancelled verification, stopping service")
+                                typingProfileService?.resetService()
                                 typingProfileService?.stopService()
                                 onVerificationResult(false) // Report failure/cancellation
                             }
@@ -244,6 +245,7 @@ fun TypingPatternVerificationScreen(
 //                                //addDebugLog("Verification failed: ${result.message}")
 //                            }
 
+                            typingProfileService.resetService()
                             typingProfileService.stopService()
                             dialogState = VerificationDialogState.Shown(isSuccess, result.message)
 
@@ -316,6 +318,7 @@ fun TypingPatternVerificationScreen(
                     TextButton(onClick = {
                         scope.launch {
                             addDebugLog("User chose to close verification")
+                            typingProfileService?.resetService()
                             typingProfileService?.stopService()
                             onVerificationResult(false) // Report failure
                         }

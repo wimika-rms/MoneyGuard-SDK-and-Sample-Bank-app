@@ -2,6 +2,16 @@ package ng.wimika.samplebankapp.ui.screens.Login
 
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
+import android.util.Log
+import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -16,7 +26,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
@@ -36,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ng.wimika.moneyguard_sdk.services.in_app_content.models.InAppContentResponse
 import ng.wimika.samplebankapp.R
@@ -44,6 +58,9 @@ import ng.wimika.samplebankapp.Constants
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
+
+private const val LOGIN_USERNAME_INPUT_ID = 1003 // Unique ID for the username EditText
+private const val LOGIN_LOG_TAG = "MONEYGUARD_LOGGER"
 
 // A reusable custom TextField composable to match the design
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,6 +110,10 @@ fun LoginScreen(
     onNavigateToVerification: () -> Unit,
     viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel { LoginViewModel() }
 ) {
+    val context = LocalContext.current
+    val sdkService = MoneyGuardClientApp.sdkService
+    val typingProfileService = remember { sdkService?.getTypingProfile() }
+    
     val uiState by viewModel.uiState.collectAsState()
     var showRiskModal by remember { mutableStateOf(false) }
     var riskModalMessage by remember { mutableStateOf("") }
@@ -100,6 +121,41 @@ fun LoginScreen(
     var credentialDialogMessage by remember { mutableStateOf("") }
     var showUnusualLocationDialog by remember { mutableStateOf(false) }
     var showUntrustedDeviceDialog by remember { mutableStateOf(false) }
+    var showTypingVerificationFailedDialog by remember { mutableStateOf(false) }
+    var typingVerificationFailedMessage by remember { mutableStateOf("") }
+    
+    var usernameEditText by remember { mutableStateOf<EditText?>(null) }
+    var permissionCheckTrigger by remember { mutableStateOf(0) }
+
+    // --- Overlay Permission Handling ---
+    val settingsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Returned from overlay settings screen.")
+        permissionCheckTrigger++
+    }
+
+    // Request overlay permission at startup
+    LaunchedEffect(usernameEditText, permissionCheckTrigger) {
+        if (usernameEditText == null) return@LaunchedEffect
+        
+        if (Settings.canDrawOverlays(context)) {
+            try {
+                typingProfileService?.startService(context as Activity, intArrayOf(LOGIN_USERNAME_INPUT_ID))
+                Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Overlay permission granted. Typing service started.")
+            } catch (e: Exception) {
+                Log.e(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Failed to start typing profile service", e)
+            }
+        } else {
+            Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Overlay permission not granted. Requesting user to enable.")
+            Toast.makeText(context, "Overlay permission is required for MoneyGuard features.", Toast.LENGTH_LONG).show()
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${context.packageName}")
+            )
+            settingsLauncher.launch(intent)
+        }
+    }
 
     // --- Side Effect Handling ---
     LaunchedEffect(Unit) {
@@ -124,6 +180,13 @@ fun LoginScreen(
                 }
                 is LoginSideEffect.ShowUnusualLocationDialog -> showUnusualLocationDialog = true
                 is LoginSideEffect.ShowUntrustedDeviceDialog -> showUntrustedDeviceDialog = true
+                is LoginSideEffect.ShowToast -> {
+                    Toast.makeText(context, effect.message, Toast.LENGTH_LONG).show()
+                }
+                is LoginSideEffect.ShowTypingVerificationFailedDialog -> {
+                    typingVerificationFailedMessage = effect.message
+                    showTypingVerificationFailedDialog = true
+                }
             }
         }
     }
@@ -139,7 +202,8 @@ fun LoginScreen(
                 LoginForm(
                     modifier = Modifier.weight(0.65f),
                     uiState = uiState,
-                    onEvent = viewModel::onEvent
+                    onEvent = viewModel::onEvent,
+                    onUsernameEditTextCreated = { editText -> usernameEditText = editText }
                 )
             }
 
@@ -186,6 +250,16 @@ fun LoginScreen(
                     }
                 )
             }
+
+            if (showTypingVerificationFailedDialog) {
+                TypingVerificationFailedDialog(
+                    message = typingVerificationFailedMessage,
+                    onProceedAnyway = {
+                        showTypingVerificationFailedDialog = false
+                        viewModel.onEvent(LoginEvent.OnDismissTypingVerificationFailedDialog)
+                    }
+                )
+            }
         }
     }
 }
@@ -217,7 +291,8 @@ private fun LoginHeader(modifier: Modifier = Modifier) {
 private fun LoginForm(
     modifier: Modifier = Modifier,
     uiState: LoginUiState,
-    onEvent: (LoginEvent) -> Unit
+    onEvent: (LoginEvent) -> Unit,
+    onUsernameEditTextCreated: (EditText) -> Unit
 ) {
     Column(
         modifier = modifier
@@ -237,12 +312,43 @@ private fun LoginForm(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        SabiTextField(
-            value = uiState.username,
-            onValueChange = { onEvent(LoginEvent.OnUsernameChange(it)) },
-            placeholder = "Username",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
-            testTag = "login_username_input"
+        // Username field with typing pattern capture
+        AndroidView(
+            factory = { ctx ->
+                EditText(ctx).apply {
+                    id = LOGIN_USERNAME_INPUT_ID
+                    hint = "Username"
+                    contentDescription = "login_username_input"
+                    setHintTextColor(SabiBankColors.TextOnOrange.copy(alpha = 0.7f).toArgb())
+                    setTextColor(SabiBankColors.TextOnOrange.toArgb())
+                    setBackgroundColor(SabiBankColors.OrangeDark.toArgb())
+                    setPadding(40, 40, 40, 40)
+                    inputType = InputType.TYPE_CLASS_TEXT or
+                            InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or
+                            InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                    imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
+                    setSingleLine(true)
+                    addTextChangedListener(object : TextWatcher {
+                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                        override fun afterTextChanged(s: Editable?) {
+                            onEvent(LoginEvent.OnUsernameChange(s?.toString() ?: ""))
+                        }
+                    })
+                    onUsernameEditTextCreated(this)
+                }
+            },
+            update = { editText ->
+                if (editText.text.toString() != uiState.username) {
+                    editText.setText(uiState.username)
+                    editText.setSelection(uiState.username.length)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .testTag("login_username_input")
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -496,6 +602,44 @@ private fun UntrustedDeviceDialog(onProceedToVerification: () -> Unit) {
                 )
             ) {
                 Text("Proceed to Verification")
+            }
+        }
+    )
+}
+
+@Composable
+private fun TypingVerificationFailedDialog(message: String, onProceedAnyway: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { /* Prevent dismissing */ },
+        title = {
+            Text(
+                text = "Typing Pattern Verification Failed",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFD32F2F)
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Your typing pattern could not be verified. This may indicate unauthorized access.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+//                Text(
+//                    text = "Reason: $message",
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = Color.Gray
+//                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onProceedAnyway,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SabiBankColors.OrangePrimary
+                )
+            ) {
+                Text("Proceed Anyway")
             }
         }
     )

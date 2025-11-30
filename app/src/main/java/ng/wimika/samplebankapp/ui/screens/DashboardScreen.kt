@@ -304,7 +304,7 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
             if (showTypingPatternActions) {
                 ActionCard(
                     icon = Icons.Default.Security,
-                    text = "Enroll\nTyping Pattern",
+                    text = "Enroll\nBehavioral Biometrics",
                     modifier = Modifier.weight(1f),
                     onClick = onEnrollTypingPattern,
                     testTag = "dashboard_enroll_typing_button"
@@ -318,7 +318,7 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
             if (showTypingPatternActions) {
                 ActionCard(
                     icon = Icons.Default.Fingerprint,
-                    text = "Verify\nTyping Pattern",
+                    text = "Verify\nBehavioral Biometrics",
                     modifier = Modifier.weight(1f),
                     onClick = onVerifyTypingPattern,
                     testTag = "dashboard_verify_typing_button"

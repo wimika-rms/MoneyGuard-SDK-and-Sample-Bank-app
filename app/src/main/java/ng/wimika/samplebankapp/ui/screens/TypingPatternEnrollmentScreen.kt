@@ -74,8 +74,8 @@ fun TypingPatternScreen(
     val firstName = preferenceManager?.getMoneyguardFirstName()?.takeIf { it.isNotBlank() } ?: "John"
     val lastName = preferenceManager?.getMoneyguardLastName()?.takeIf { it.isNotBlank() } ?: "Doe"
     val textToType by remember {
-        //mutableStateOf("hello, my name is $firstName $lastName")
-        mutableStateOf("your typing biometrics are unique and natural")
+        mutableStateOf("hello, my name is $firstName")
+        //mutableStateOf("arcbishopzoe5@email.com")
     }
 
     // Function to add debug logs
@@ -272,7 +272,7 @@ fun TypingPatternScreen(
                                         currentStep++
                                         userInput = ""
                                         editText?.setText("")
-                                        //sdkService.getTypingProfile().resetService()
+                                        sdkService.getTypingProfile().resetService()
                                         sdkService.getTypingProfile().stopService()
                                         sdkService.getTypingProfile().startService(context as Activity, intArrayOf(TYPING_PROFILE_INPUT_ID))
                                         addDebugLog("Moving to next step")
@@ -355,7 +355,7 @@ private fun SuccessBanner() {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text("Typing Pattern registered", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("Your Behavioural capture was successful", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
+                Text("Your Behavioural Biometrics capture was successful", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
             }
         }
     }
