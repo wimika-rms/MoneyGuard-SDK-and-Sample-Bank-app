@@ -193,12 +193,11 @@ class LoginViewModel(
                 }
 
                 // Step 2.5: Typing Pattern Check (Enrollment or Verification)
-                handleTypingPatternCheck()
+                //handleTypingPatternCheck()
 
                 // Step 3: Post-Login Flow (Credential & Location Checks)
                 // This will be called after typing pattern check completes
-                // handlePostLoginFlow()
-
+                 handlePostLoginFlow()
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = "Login failed. Please check your credentials.", isLoading = false) }
             }
