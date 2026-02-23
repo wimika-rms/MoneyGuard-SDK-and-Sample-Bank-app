@@ -1,45 +1,44 @@
-# MoneyGuard SDK
+# MoneyGuard Partner Lite SDK for Android
 
-The MoneyGuard SDK is an Android library that enables seamless integration of MoneyGuard protection into your Android application. This SDK provides a comprehensive set of features for onboarding to MoneyGuard, enabling protection, managing policy, claims, and transaction security.
-This repo contains a sample bank app that let's you see an example to guide you with integrating the MoneyGuard SDK.
+The MoneyGuard Partner Lite SDK is an Android library that enables seamless integration of MoneyGuard protection directly into your bank's Android application. This SDK operates as a secure gateway—handling telemetry, continuous authentication, risk assessment, and real-time transaction security—while handing off complex insurance management tasks to the standalone MoneyGuard application.
 
-## Features
+To accelerate your integration, this repository includes a fully functional **Sample Bank App** (built with Jetpack Compose) demonstrating every SDK feature in practice.
 
-- **Authentication**: Secure user authentication and session management
-- **Policy Management**: Create and manage insurance policies
-- **Claims Processing**: Submit and track insurance claims
-- **Transaction Security**: Real-time transaction monitoring and security checks
-- **Utility Functions**: Various utility functions for app integration
-- **Pre-launch Checks**: Risk assessment during app startup
-- **Typing Profile**: Biometric authentication through typing pattern recognition
+---
 
+## Architecture & Performance Guarantees
+
+We recognize that banking applications demand the highest standards of performance, security, and user privacy. The MoneyGuard SDK is designed with a **"Zero-Touch Integration Strategy"**:
+
+- **Lightweight Footprint:** This is a "Lite SDK" specifically engineered for background telemetry, device binding, and real-time risk decisions without bloating your app size.
+- **Zero Latency Impact:** All risk analysis, pre-launch checks, and transaction monitoring are processed asynchronously with "fail-open" default capabilities. MoneyGuard will *never* block your core transaction flows if network degradation occurs.
+- **Privacy by Design:** Our Behavioral Biometrics (Typing Profile) captures strictly mathematical metadata (e.g., keystroke flight time, touch pressure). **It does not capture, store, or transmit raw PII or typed text**, acting fundamentally differently from a keylogger.
+
+---
 
 ## Requirements
-
 - Android API level 21 or higher
 - Kotlin 1.5.0 or higher
 - AndroidX libraries
 
-
 ## Installation
 
-Add the following dependency to your app's `build.gradle` file:
+Add the following dependencies to your app's `build.gradle` file:
 
 ```gradle
 dependencies {
+    // MoneyGuard SDK modules
     implementation(files("libs/moneyguard-sdk-release.aar"))
     implementation(files("libs/moneyguard-sdk-commons-release.aar"))
     implementation(files("libs/moneyguard-sdk-auth-release.aar"))
 
-
-    //Ensure the add the external libraries used by the SDK. 
+    // Required External Dependencies
     implementation(libs.okhttp3)
     implementation(libs.retrofit)
     implementation(libs.gson)
     implementation(libs.okhttp3.logging)
     implementation(libs.gson.converter)
     implementation(libs.android.joda)
-    implementation(libs.coil.compose)
 }
 ```
 
@@ -49,850 +48,297 @@ Add the following permissions to your `AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET"/>
+<!-- Required for Typing Profile overlay capabilities -->
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+<uses-permission android:name="android.permission.TYPE_APPLICATION_OVERLAY"/>
 ```
-
-The INTERNET permission is required for the SDK to communicate with MoneyGuard's services.
 
 ### Application Configuration
 
-If you're using a custom Application class, make sure to initialize the SDK in your `onCreate()` method:
+Initialize the SDK in the `onCreate()` method of your custom `Application` class. This requires passing the application `Context`.
 
 ```kotlin
-class YourApplication : Application() {
+class YourBankApplication : Application() {
+    companion object {
+        var sdkService: MoneyGuardSdkService? = null
+    }
+
     override fun onCreate() {
         super.onCreate()
-        
         // Initialize MoneyGuard SDK
-        val sdkService = MoneyGuardSdk.initialize(this)
+        sdkService = MoneyGuardSdk.initialize(this)
     }
 }
 ```
+*💡 See `MoneyGuardClientApp.kt` in the Sample App for an implementation example.*
 
-Then declare your Application class in the `AndroidManifest.xml`:
+---
 
-```xml
-<application
-    android:name=".YourApplication"
-    ... >
-    <!-- Your activities and other configurations -->
-</application>
-```
+## Authentication & Session Management
 
-## Usage
+**Critical Concept:** The SDK relies on a dual-token system. First, your app authenticates the user as normal and retrieves a `partnerSessionToken`. You then pass this token to the SDK to register the session and receive a distinct **MoneyGuard Token**, which is required for all subsequent SDK API calls.
 
-### Utility Functions
+### 1. Registering the Session
+
+Once your user logs into your bank app, exchange your session token for a MoneyGuard token:
 
 ```kotlin
-// Check if MoneyGuard app is installed
-val isInstalled = sdkService.utility().isMoneyGuardInstalled()
-
-// Launch MoneyGuard app installation
-sdkService.utility().launchAppInstallation()
-
-// Launch MoneyGuard app
-val launched = sdkService.utility().launchMoneyGuardApp()
-
-// Check MoneyGuard status
-val status = sdkService.utility().checkMoneyguardStatus(token)
-```
-
-
-
-### Pre-launch Checks
-
-The prelaunch checks feature performs risk assessment during app startup to ensure the environment is secure and suitable for financial operations. This helps prevent fraud and ensures compliance with security requirements.
-
-```kotlin
-// Perform startup checks
-val startupRisk = sdkService.prelaunch().startup()
-
-// Using callback
-sdkService.prelaunch().startup { risk ->
-    when (risk.preLaunchVerdict.decision) {
-        PreLaunchDecision.Launch -> {
-            // App can proceed normally
-        }
-        PreLaunchDecision.LaunchWithWarning -> {
-            // Show warning to user but allow proceeding
-        }
-        PreLaunchDecision.DoNotLaunch -> {
-            // App should not proceed
-            // Implement appropriate security measures
-        }
-    }
-}
-```
-
-#### Risk Assessment Results
-
-The prelaunch checks return a `StartupRisk` object that contains:
-
-- `moneyGuardActive`: Boolean indicating if MoneyGuard is active
-- `risks`: List of `SpecificRisk` objects containing detailed risk information
-- `preLaunchVerdict`: A `PreLaunchVerdict` object containing:
-    - `decision`: The final launch decision (`Launch`, `LaunchWithWarning`, or `DoNotLaunch`)
-    - `reasons`: List of reasons for the decision
-
-#### Risk Types and Decisions
-
-The SDK evaluates several types of risks and makes decisions based on their severity:
-
-1. **Critical Risks (DoNotLaunch)**:
-    - Root/Jailbreak detection
-    - DNS Spoofing
-    - Weak Device Password
-
-2. **Warning Risks (LaunchWithWarning)**:
-    - USB Debugging enabled
-    - Unknown apps installation allowed
-    - Unencrypted WiFi
-    - WiFi without password protection
-
-#### Risk Status
-
-Each risk has a status that can be:
-- `RISK_STATUS_SAFE`: No security concerns
-- `RISK_STATUS_WARN`: Warning level security concern
-- `RISK_STATUS_UNSAFE`: Critical security concern
-
-#### Implementation Example
-
-```kotlin
-// In your ViewModel
-private fun checkStartupRisks() {
-    viewModelScope.launch {
-        try {
-            val startupRisk = moneyGuardPrelaunch?.startup()
-            
-            if (startupRisk == null || startupRisk.risks.isEmpty()) {
-                // No risks detected, proceed normally
-            } else {
-                val severeRisks = startupRisk.risks.filter { it.status == RiskStatus.RISK_STATUS_UNSAFE }
-                val warningRisks = startupRisk.risks.filter { it.status == RiskStatus.RISK_STATUS_WARN }
-
-                when (startupRisk.preLaunchVerdict.decision) {
-                    PreLaunchDecision.DoNotLaunch -> {
-                        // Show severe risk warning
-                    }
-                    PreLaunchDecision.LaunchWithWarning -> {
-                        // Show warning risk message
-                    }
-                    PreLaunchDecision.Launch -> {
-                        // Proceed normally
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // Handle error
-        }
-    }
-}
-```
-
-#### Security Recommendations
-
-Based on the risk assessment, the SDK provides specific recommendations for each risk type:
-
-- For Root/Jailbreak: Advise against logging into banking apps
-- For USB Debugging: Recommend disabling USB debugging
-- For Weak Passwords: Recommend setting a strong device password
-- For Unknown Apps: Recommend disabling installation from unknown sources
-- For DNS Spoofing: Advise against proceeding with banking activities
-- For WiFi Security: Recommend using encrypted and password-protected WiFi
-
-## Error Handling
-
-The SDK uses Kotlin's Result type for error handling. Always handle potential errors when making SDK calls:
-
-
-
-### Authentication
-
-```kotlin
-// Using Flow
-sdkService.authentication().register(partnerBankId, sessionToken)
-    .collect { result ->
-        when (result) {
-            is MoneyGuardResult.Success -> {
-                // Handle successful registration
-            }
-            is MoneyGuardResult.Failure -> {
-                // Handle error
-            }
-            is MoneyGuardResult.Loading -> {
-                // Handle loading state
-            }
-        }
-    }
-
-// Using Callback
-sdkService.authentication().register(partnerBankId, sessionToken) { result ->
-    when (result) {
-        is MoneyGuardResult.Success -> {
-            // Handle successful registration
-        }
-        is MoneyGuardResult.Failure -> {
-            // Handle error
-        }
-        is MoneyGuardResult.Loading -> {
-            // Handle loading state
-        }
-    }
-}
-```
-
-#### Logout
-
-The `logout()` function allows you to securely terminate the current session with the MoneyGuard service.
-
-```kotlin
-// Initialize the MoneyGuard SDK
+// 1. Get the SDK instance
 val moneyGuardAuth = sdkService.authentication()
 
-// Call logout when needed
-moneyGuardAuth.logout()
-```
-
-### Credential Checking
-
-The SDK provides two ways to check credentials for potential security risks:
-
-#### 1. Using Callback
-
-```kotlin
-moneyGuardAuth.credentialCheck(
-    sessionToken = "your-session-token",
-    credential = Credential(
-        username = "user@example.com",
-        passwordStartingCharactersHash = "hashedPassword",
-        hashAlgorithm = "SHA-256",
-        domain = "example.com"
-    ),
-    onResult = { result ->
-        when (result) {
-            is MoneyGuardResult.Success -> {
-                val scanResult = result.data
-                // Handle successful credential check
-            }
-            is MoneyGuardResult.Failure -> {
-                // Handle error
-            }
-            is MoneyGuardResult.Loading -> {
-                // Handle loading state
+// 2. Register the session using Kotlin Flows
+lifecycleScope.launch {
+    moneyGuardAuth.register(partnerBankId = 101, partnerSessionToken = "your_bank_session_token")
+        .collect { result ->
+            when (result) {
+                is MoneyGuardResult.Loading -> { /* Show loading state */ }
+                is MoneyGuardResult.Success -> {
+                    val sessionResponse = result.data
+                    val moneyGuardToken = sessionResponse.token // 🔑 Save this locally!
+                    val hasActivePolicy = sessionResponse.hasActivePolicy
+                    
+                    // Save token securely (e.g., EncryptedSharedPreferences)
+                    preferenceManager.saveMoneyGuardToken(moneyGuardToken)
+                }
+                is MoneyGuardResult.Failure -> {
+                    // Fail-open: Log the error and proceed with bank login safely
+                    Log.e("MoneyGuard", "Registration failed: ${result.error.message}")
+                }
             }
         }
-    }
-)
+}
 ```
+*💡 See `LoginViewModel.kt` in the Sample App for a robust implementation handling state, errors, and fail-open logic.*
 
-#### 2. Using Flow (Coroutines)
+### 2. Terminating the Session
+When the user logs out of your banking app, ensure you also terminate the MoneyGuard session to cleanly sever the IPC (Inter-Process Communication) bind.
 
 ```kotlin
-// In a coroutine scope
-launch {
-    moneyGuardAuth.credentialCheck(
-        sessionToken = "your-session-token",
-        credential = Credential(
-            username = "user@example",
-            passwordStartingCharactersHash = "hashedPassword",
-            hashAlgorithm = "SHA-256",
-            domain = "example.com"
-        )
-    ).collect { result ->
-        when (result) {
-            is MoneyGuardResult.Success -> {
-                val scanResult = result.data
-                // Handle successful credential check
-            }
-            is MoneyGuardResult.Failure -> {
-                // Handle error
-            }
-            is MoneyGuardResult.Loading -> {
-                // Handle loading state
-            }
+sdkService.authentication().logout()
+```
+
+---
+
+## Standalone App Handoff (The Gateway Approach)
+
+To prevent your bank app from becoming cluttered, policy creation, claims management, and deep configurations are managed in the standalone MoneyGuard app. Your app acts as the gateway.
+
+Use the `Utility` service to route users intelligently:
+
+```kotlin
+val utility = sdkService.utility()
+
+fun handleProtectAccountClick() {
+    if (utility.isMoneyGuardInstalled()) {
+        // App is installed, launch it directly via IPC/Deep link
+        val launched = utility.launchMoneyGuardApp()
+        if (!launched) {
+            // Fallback error handling
         }
+    } else {
+        // App is not installed, route user to Play Store
+        utility.launchAppInstallation()
     }
 }
 ```
 
-### MoneyGuardPolicy
-
-The `MoneyGuardPolicy` interface provides methods for managing insurance policies and coverage limits. Here's a detailed breakdown of available operations:
-
-#### Get Coverage Limits
+You can also check the real-time status of the user's MoneyGuard protection using the token obtained during authentication:
 
 ```kotlin
-suspend fun getCoverageLimits(token: String): Result<CoverageLimitResponse>
+val status: MoneyGuardAppStatus = utility.checkMoneyguardStatus(moneyGuardToken)
+// Returns enums like: Active, InActive, NoPolicyAppInstalled, ValidPolicyAppNotInstalled
 ```
 
-Retrieves available coverage limits for insurance policies.
+---
 
-**Parameters:**
-- `token` (String): JWT token for authorization
+## Pre-launch Checks (Risk Assessment)
 
-**Returns:**
-- `Result<CoverageLimitResponse>`: Contains list of coverage limits or error
-
-#### Get Policy Options
+Run pre-launch checks immediately upon application start or after login to ensure the device environment is secure (checking for root, debug mode, unencrypted Wi-Fi, etc.).
 
 ```kotlin
-suspend fun getPolicyOptions(token: String, coverageLimitId: Int): Result<PolicyOptionResponse>
-```
-
-Retrieves policy options for a specific coverage limit.
-
-**Parameters:**
-- `token` (String): JWT token for authorization
-- `coverageLimitId` (Int): ID of the coverage limit to get options for
-
-**Returns:**
-- `Result<PolicyOptionResponse>`: Contains list of policy options or error
-
-#### Get User Accounts
-
-```kotlin
-suspend fun getUserAccounts(token: String, partnerBankId: Int): Result<UserAccountsResponse>
-```
-
-Retrieves user's bank accounts for a specific partner bank.
-
-**Parameters:**
-- `token` (String): JWT token for authorization
-- `partnerBankId` (Int): ID of the partner bank
-
-**Returns:**
-- `Result<UserAccountsResponse>`: Contains list of bank accounts or error
-
-#### Create Policy
-
-```kotlin
-suspend fun createPolicy(
-    token: String,
-    policyOptionId: String,
-    coveredAccountIds: List<String>,
-    debitAccountId: String,
-    autoRenew: Boolean
-): Result<CreatePolicyResponse>
-```
-
-Creates a new insurance policy with specified parameters.
-
-**Parameters:**
-- `token` (String): JWT token for authorization
-- `policyOptionId` (String): ID of the selected policy option
-- `coveredAccountIds` (List<String>): List of account IDs to be covered by the policy
-- `debitAccountId` (String): ID of the account to debit premium from
-- `autoRenew` (Boolean): Whether the policy should auto-renew
-
-**Returns:**
-- `Result<CreatePolicyResponse>`: Contains created policy details or error
-
-## Usage Example
-
-```kotlin
-// Initialize the policy service
-val moneyGuardPolicy = sdkService().policy()
-
-// Get coverage limits
-val coverageLimits = moneyGuardPolicy.getCoverageLimits("your-jwt-token")
-
-// Get policy options for a specific coverage limit
-val policyOptions = moneyGuardPolicy.getPolicyOptions("your-jwt-token", coverageLimitId = 1)
-
-// Get user accounts
-val userAccounts = moneyGuardPolicy.getUserAccounts("your-jwt-token", partnerBankId = 1)
-
-// Create a new policy
-val newPolicy = moneyGuardPolicy.createPolicy(
-    token = "your-jwt-token",
-    policyOptionId = "option-123",
-    coveredAccountIds = listOf("account-1", "account-2"),
-    debitAccountId = "debit-account-1",
-    autoRenew = true
-)
-```
-
-## Error Handling
-
-All API methods return a `Result` type that can contain either a successful response or an error. Handle the results appropriately in your application:
-
-```kotlin
-when (val result = moneyGuardPolicy.getCoverageLimits(token)) {
-    is Result.Success -> {
-        // Handle successful response
-        val coverageLimits = result.getOrNull()
-    }
-    is Result.Failure -> {
-        // Handle error
-        val error = result.exceptionOrNull()
-    }
-}
-```
-
-
-### Claims Management
-
-```kotlin
-// Create a claim object
-val claim = Claim(
-    accountId = 1234567890L,  // The account ID where the loss occurred
-    lossDate = Date(),        // The date when the loss occurred
-    nameOfIncident = "Theft", // The type of incident, the values here are gotten from the incident list SDK function. 
-    lossAmount = 5000.0,      // The amount lost in the incident
-    statement = "Detailed description of the incident" // A detailed statement about the incident
-)
-
-// Create attachments
-val attachments = listOf(
-    // Create a file part from a file
-    MultipartBody.Part.createFormData(
-        "file",
-        file.name,
-        file.asRequestBody("image/*".toMediaType())
-    )
-)
-
-// Submit a claim using suspend function
-val claimResult = sdkService.claim().submitClaim(
-    sessionToken = token,
-    claim = claim,
-    attachments = attachments
-)
-
-// Submit a claim using callback
-sdkService.claim().submitClaim(
-    sessionToken = token,
-    claim = claim,
-    attachments = attachments,
-    onSuccess = { response ->
-        // Handle successful claim submission
-        println("Claim submitted successfully: ${response.message}")
-    },
-    onFailure = { error ->
-        // Handle error
-        println("Failed to submit claim: ${error.message}")
-    }
-)
-
-// Get claims history using suspend function
-val claims = sdkService.claim().getClaims(
-    sessionToken = token,
-    from = startDate,
-    to = endDate,
-    bank = bankName,
-    claimStatus = ClaimStatus.ALL
-)
-
-// Get claims history using callback
-sdkService.claim().getClaims(
-    sessionToken = token,
-    from = startDate,
-    to = endDate,
-    bank = bankName,
-    claimStatus = ClaimStatus.ALL,
-    onSuccess = { claims ->
-        // Handle successful claims retrieval
-        claims.forEach { claim ->
-            println("Claim ID: ${claim.id}, Status: ${claim.status}")
-        }
-    },
-    onFailure = { error ->
-        // Handle error
-        println("Failed to get claims: ${error.message}")
-    }
-)
-
-// Get a specific claim using suspend function
-val specificClaim = sdkService.claim().getClaim(
-    sessionToken = token,
-    claimId = 123
-)
-
-// Get a specific claim using callback
-sdkService.claim().getClaim(
-    sessionToken = token,
-    claimId = 123,
-    onSuccess = { claim ->
-        // Handle successful claim retrieval
-        println("Claim details: ${claim.brief}")
-    },
-    onFailure = { error ->
-        // Handle error
-        println("Failed to get claim: ${error.message}")
-    }
-)
-
-// Get available incident types using suspend function
-val incidentNames = sdkService.claim().getIncidentNames(token)
-
-// Get available incident types using callback
-sdkService.claim().getIncidentNames(
-    sessionToken = token,
-    onSuccess = { names ->
-        // Handle successful incident names retrieval
-        names.forEach { name ->
-            println("Available incident: $name")
-        }
-    },
-    onFailure = { error ->
-        // Handle error
-        println("Failed to get incident names: ${error.message}")
-    }
-)
-```
-
-#### API Access Methods
-
-The SDK provides two ways to access the claims API:
-
-1. **Suspend Functions (Coroutines)**
-   - Use these in coroutine contexts
-   - Better for structured concurrency
-   - Easier error handling with try-catch
-   - Example:
-   ```kotlin
-   lifecycleScope.launch {
-       try {
-           val result = sdkService.claim().submitClaim(...)
-           // Handle success
-       } catch (e: Exception) {
-           // Handle error
-       }
-   }
-   ```
-
-2. **Callback-based Functions**
-   - Use these in non-coroutine contexts
-   - Traditional callback pattern
-   - Separate success and error callbacks
-   - Example:
-   ```kotlin
-   sdkService.claim().submitClaim(
-       sessionToken = token,
-       claim = claim,
-       attachments = attachments,
-       onSuccess = { response -> /* Handle success */ },
-       onFailure = { error -> /* Handle error */ }
-   )
-   ```
-
-Choose the method that best fits your application's architecture and requirements. The suspend functions are recommended for modern Kotlin applications using coroutines, while the callback-based approach is useful for legacy code or when working with non-coroutine contexts.
-
-#### Claim Object Structure
-
-The `Claim` object requires the following fields:
-
-- `accountId` (Long): The ID of the account where the loss occurred
-- `lossDate` (Date): The date when the incident occurred
-- `nameOfIncident` (String): The type of incident (e.g., "Theft", "Fraud", "Loss")
-- `lossAmount` (Double): The monetary amount lost in the incident
-- `statement` (String): A detailed description of the incident
-
-#### Supported Attachment Types
-
-The SDK supports the following file types for claim attachments:
-
-- Images: JPG, JPEG, PNG
-- Documents: PDF
-- Maximum file size: 10MB per file
-- Maximum number of attachments: 5 files per claim
-
-To create attachments, use `MultipartBody.Part` with the appropriate media type:
-
-```kotlin
-// For images
-val imagePart = MultipartBody.Part.createFormData(
-    "file",
-    imageFile.name,
-    imageFile.asRequestBody("image/*".toMediaType())
-)
-
-// For PDF documents
-val pdfPart = MultipartBody.Part.createFormData(
-    "file",
-    pdfFile.name,
-    pdfFile.asRequestBody("application/pdf".toMediaType())
-)
-```
-
-#### Claim Status
-
-Claims can have the following statuses:
-
-- `Submitted`: Initial state when claim is submitted
-- `UnderReview`: Claim is being reviewed
-- `Verified`: Claim has been verified
-- `Rejected`: Claim has been rejected
-- `ProcessingPayment`: Payment is being processed
-- `PaymentSent`: Payment has been sent
-- `ReimbursementComplete`: Reimbursement process is complete
-
-### Transaction Security
-
-The SDK provides monitoring and security checks to protect your users' financial transactions. This feature helps detect and prevent fraudulent activities.
-
-```kotlin
-// Check debit transaction using coroutine suspend function
-val result = sdkService.transactionCheck().checkDebitTransaction(
-    sessionToken = token,
-    debitTransaction = transaction
-)
-
-// Using callback
-transactionCheck?.checkDebitTransaction(sessionToken, debitTransaction,
-    onSuccess = { result ->
-        if (result.success) {
-            when (result.status) {
-                RiskStatus.RISK_STATUS_WARN -> {
-                    //handle event
-                }
-                RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS -> {
-                    //handle event
-                }
-                RiskStatus.RISK_STATUS_UNSAFE_LOCATION -> {
-                    //handle event
-                }
-                RiskStatus.RISK_STATUS_UNSAFE -> {
-                    //handle event
-                }
-                else -> {
-
-                }
-            }
-        }
-    },
-    onFailure = {
-
-    }
-)
-```
-
-#### Transaction Check Parameters
-
-The `checkDebitTransaction` method accepts the following parameters:
-
-- `sessionToken` (String): The user's session token
-- `debitTransaction` (DebitTransaction): An object containing transaction details:
-  - `sourceAccountNumber` (String): The source account number
-  - `amount` (Double): The transaction amount
-  - `memo` (String): The transaction description
-  - `destinationBank` (String): The destination bank name
-  - `destinationAccountNumber` (String): The destination account number
-  - `location` (LatLng): The location (latitude and longitude) that the transaction occurred
-    - `latitude` (Double)
-    - `longitude` (Double)
-
-
-#### Transaction Check Results
-
-The check returns one of the following results:
-
-- `RiskStatus.RISK_STATUS_WARN`
-- `RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS`
-- `RiskStatus.RISK_STATUS_UNSAFE_LOCATION`
-- `RiskStatus.RISK_STATUS_UNSAFE`
-- `RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS`
-- `RiskStatus.RISK_STATUS_UNSAFE_LOCATION`
-
-
-```kotlin
-try {
-    val result = sdkService.policy().getCoverageLimits(token)
-    result.onSuccess { coverageLimits ->
-        // Handle success
-    }.onFailure { error ->
-        // Handle error
-    }
-} catch (e: Exception) {
-    // Handle unexpected errors
-}
-```
-
-
-### TypingProfile
-
-#### Overview
-
-The `TypingProfile` interface provides biometric authentication capabilities through typing pattern recognition within the MoneyGuard SDK.
-
-#### Key Features
-
-- **Biometric Authentication**: Captures unique typing patterns as a biometric identifier
-- **Real-time Recording**: Monitors typing behavior across specified UI targets
-- **Pattern Matching**: Compares captured patterns against stored user profiles
-- **Fraud Detection**: Integrates with MoneyGuard's broader security framework
-
-#### Usage Examples
-The `TypingProfile` interface is accessible through the main MoneyGuard SDK service:
-
-```kotlin
-val typingProfile = sdkService.getTypingProfile()
-```
-
-#### Basic Setup & Usage
-
-```kotlin
-class LoginActivity : AppCompatActivity() {
+lifecycleScope.launch {
+    val startupRisk = sdkService.prelaunch().startup()
     
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
-        
-        // Start monitoring typing on username and password fields
-        val targets = intArrayOf(
-            R.id.edittext_username,
-            R.id.edittext_password
-        )
-        
-        lifecycleScope.launch {
-            typingProfile.startService(this@LoginActivity, targets)
+    when (startupRisk.preLaunchVerdict.decision) {
+        PreLaunchDecision.Launch -> {
+            // Environment is safe, proceed normally
         }
-        
-        
-        // After typing
-        val combinedText = "$username$password"
-
-        // Match against stored profiles
-        val result = typingProfile.matchTypingProfile(combinedText, authToken)
+        PreLaunchDecision.LaunchWithWarning -> {
+            // Show warning (e.g., "Unsecured Wi-Fi detected"), but allow login
+            val reasons = startupRisk.preLaunchVerdict.reasons
+        }
+        PreLaunchDecision.DoNotLaunch -> {
+            // Critical risk (e.g., Device Rooted, DNS Spoofed). Block login.
+            showCriticalSecurityError()
+        }
     }
 }
 ```
 
-#### API Reference
-
-#### startService()
-
-```kotlin
-suspend fun startService(activity: Activity, targets: IntArray)
-```
-
-**Description**: Initializes and starts the typing pattern recording service for specified UI targets.
-
-**Parameters**:
-- `activity`: The Android activity context required for TypingDNA initialization. Must be a valid, non-finishing activity.
-- `targets`: Array of view IDs to monitor for typing patterns. Must not be empty. Each ID should correspond to a text input view.
-
-**Behavior**:
-- Creates and initializes a TypingDNA recorder instance
-- Registers the provided target view IDs for monitoring
-- Begins real-time typing pattern capture
-- Maintains service state to prevent duplicate initialization
-
-**Target Views**:
-The targets parameter accepts view IDs (from findViewById) that should be monitored:
-- EditText fields (most common)
-- Any text input components
-- Multiple targets can be monitored simultaneously
 ---
 
-#### pauseService()
+## Credential Checking
+
+Ensure the user is not logging in using a password compromised in known data breaches. 
 
 ```kotlin
-fun pauseService()
-```
-
-**Description**: Temporarily pauses typing pattern recording without stopping the service.
-
-**Use Cases**:
-- Temporarily disable recording during sensitive operations
-
----
-
-#### stopService()
-
-```kotlin
-fun stopService()
-```
-
-**Description**: Completely stops the typing pattern recording service and clears all state.
-
-**Behavior**:
-- Terminates TypingDNA recorder
-
----
-
-#### resumeService()
-
-```kotlin
-fun resumeService()
-```
-
-**Description**: Resumes typing pattern recording after a pause operation.
-
-**Behavior**:
-- Restarts TypingDNA recorder
-
----
-
-#### resetService()
-
-```kotlin
-fun resetService()
-```
-
-**Description**: Resets the typing pattern recording service while keeping it active.
-
-**Behavior**:
-- Clears typing history buffer
-
----
-
-#### getTypingPattern()
-
-```kotlin
-fun getTypingPattern(text: String): String
-```
-
-**Description**: Extracts typing pattern data from the provided text input.
-
-**Parameters**:
-- `text`: The text input for which to extract typing patterns. Should match text typed in monitored target views.
-
-**Returns**: Encoded typing pattern string ready for authentication, or empty string if pattern cannot be generated.
-
----
-
-#### matchTypingProfile()
-
-```kotlin
-suspend fun matchTypingProfile(text: String, token: String): TypingProfileResult
-```
-
-**Description**: Matches captured typing patterns against stored user profiles for authentication.
-
-**Parameters**:
-- `text`: The text input used for pattern extraction. Should match text typed in monitored target views.
-- `token`: Valid authentication token for API access. Must have appropriate permissions for typing profile operations.
-
-**Returns**: `TypingProfileResult` containing authentication results and metadata. Includes success status, match results, confidence levels, and recommended actions.
-
-#### Data Models
-
-#### TypingProfileResult
-
-```kotlin
-data class TypingProfileResult(
-    val success: Boolean,
-    val message: String,
-    val isEnrolledOnThisDevice: Boolean,
-    val matched: Boolean,
-    val highConfidence: Boolean,
-    val tDnaStatus: Int,
-    val message_Code: Int,
-    val action: String,
-    val enrollment: Int,
-    val result: Int,
-    val high_Confidence: Int,
-    val asString: String,
+val credential = Credential(
+    username = "user@example.com",
+    passwordStartingCharactersHash = "hashedPasswordFragment", // Never send raw passwords
+    hashAlgorithm = HashAlgorithm.SHA256,
+    domain = "yourbank.com"
 )
+
+lifecycleScope.launch {
+    sdkService.authentication().credentialCheck(moneyGuardToken, credential)
+        .collect { result ->
+            if (result is MoneyGuardResult.Success) {
+                if (result.data.status == RiskStatus.RISK_STATUS_UNSAFE) {
+                    // Force user to reset password or trigger 2FA
+                }
+            }
+        }
+}
 ```
+
+---
+
+## Transaction Security
+
+Before authorizing a debit transfer, run it through the `TransactionCheck` service to evaluate real-time behavioral and geographic anomalies.
+
+```kotlin
+val transaction = DebitTransaction(
+    sourceAccountNumber = "1234567890",
+    amount = 50000.0,
+    memo = "Rent Payment",
+    destinationBank = "057",
+    destinationAccountNumber = "0987654321"
+)
+
+lifecycleScope.launch {
+    try {
+        val checkResult = sdkService.transactionCheck()
+            .checkDebitTransaction(moneyGuardToken, transaction)
+            
+        when (checkResult.status) {
+            RiskStatus.RISK_STATUS_SAFE -> { /* Process Transfer */ }
+            RiskStatus.RISK_STATUS_WARN -> { /* Show warning / request confirmation */ }
+            RiskStatus.RISK_STATUS_UNSAFE_LOCATION,
+            RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS,
+            RiskStatus.RISK_STATUS_UNSAFE -> {
+                // High risk detected. Trigger Step-Up Authentication (OTP/FaceID)
+            }
+        }
+    } catch (e: Exception) {
+        // Fail-open: If the API times out, process the transfer to prevent friction
+    }
+}
+```
+
+---
+
+## Biometric Authentication (Typing Profile)
+
+The `TypingProfile` service captures behavioral typing patterns as a biometric identifier. Note that this requires `SYSTEM_ALERT_WINDOW` permission to accurately capture telemetry data.
+
+### Integrating with XML Layouts
+If you are using legacy Android Views:
+```kotlin
+val targets = intArrayOf(R.id.edittext_username, R.id.edittext_password)
+lifecycleScope.launch {
+    sdkService.getTypingProfile().startService(this@LoginActivity, targets)
+}
+```
+
+### Integrating with Jetpack Compose (Modern UI)
+Jetpack Compose does not natively use integer View IDs. To integrate the SDK into a Compose screen, use an `AndroidView` wrapper around a traditional `EditText` and assign it a static ID.
+
+```kotlin
+// 1. Define a static ID
+private const val TYPING_PROFILE_INPUT_ID = 1001
+
+@Composable
+fun LoginScreen() {
+    val typingProfileService = MoneyGuardClientApp.sdkService?.getTypingProfile()
+    val context = LocalContext.current
+
+    // 2. Start the service (Ensure overlay permissions are granted first!)
+    LaunchedEffect(Unit) {
+        typingProfileService?.startService(context as Activity, intArrayOf(TYPING_PROFILE_INPUT_ID))
+    }
+
+    // 3. Wrap standard EditText using AndroidView
+    AndroidView(
+        factory = { ctx ->
+            EditText(ctx).apply {
+                id = TYPING_PROFILE_INPUT_ID
+                hint = "Enter Username"
+                inputType = InputType.TYPE_CLASS_TEXT
+                
+                addTextChangedListener(object : TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                    override fun afterTextChanged(s: Editable?) {
+                        // Update your Compose state here
+                    }
+                })
+            }
+        },
+        modifier = Modifier.fillMaxWidth().height(56.dp)
+    )
+}
+```
+*💡 See `TypingPatternEnrollmentScreen.kt` in the Sample App for a full Jetpack Compose integration, including how to prompt users for Overlay permissions.*
+
+---
+
+## Policy & Claims Management
+
+While complex claims and policy configurations belong in the standalone app, the SDK allows you to fetch summaries and submit basic claims directly from the banking interface.
+
+### Submitting a Claim
+
+```kotlin
+val claim = Claim(
+    accountId = 1234567890L,
+    lossDate = Date(),
+    nameOfIncident = "Fraudulent Transfer",
+    lossAmount = 50000.0,
+    statement = "I noticed an unauthorized transfer..."
+)
+
+// Prepare attachments (Max 5 files, 10MB each)
+val imagePart = MultipartBody.Part.createFormData(
+    "file", imageFile.name, imageFile.asRequestBody("image/*".toMediaType())
+)
+
+lifecycleScope.launch {
+    val response = sdkService.claim().submitClaim(moneyGuardToken, claim, listOf(imagePart))
+    if (response.success) {
+        // Claim submitted successfully
+    }
+}
+```
+*💡 See `ClaimsListScreen.kt` and `SubmitClaimScreen.kt` in the Sample App for complete implementations using Jetpack Compose.*
+
+---
+
+## Exploring the Sample App
+
+We strongly encourage developers to review the `moneyguard-sample-bank-app` included in this repository. It serves as the ultimate source of truth for implementation best practices, featuring:
+- **Clean Architecture** patterns.
+- Proper **Fail-Open error handling**.
+- **Jetpack Compose** wrapper implementations.
+- Complete **Overlay Permission** request flows.
+- Real-world **Token management** and secure preference storage.
 
 ## Support
 
-For support and questions, please contact:
-- Email: 
-- Website: 
+For technical support, engineering questions, or to request integration assistance, please contact:
+- **Email:** tech@wimika.ng
+
 
 ## License
 
-This SDK is proprietary software. All rights reserved. 
+This SDK is proprietary software owned by Wimika RMS. All rights reserved.
