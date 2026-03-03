@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 2800">
+  <defs>
+    <style>
+      .box { fill: #2c3e50; stroke: #ecf0f1; stroke-width: 2; }
+      .decision { fill: #34495e; stroke: #ecf0f1; stroke-width: 2; }
+      .process { fill: #16a085; stroke: #ecf0f1; stroke-width: 2; }
+      .alert { fill: #e74c3c; stroke: #ecf0f1; stroke-width: 2; }
+      .success { fill: #27ae60; stroke: #ecf0f1; stroke-width: 2; }
+      .text { fill: #ecf0f1; font-family: Arial, sans-serif; font-size: 14px; text-anchor: middle; }
+      .text-small { fill: #ecf0f1; font-family: Arial, sans-serif; font-size: 12px; text-anchor: middle; }
+      .label { fill: #ecf0f1; font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; }
+      .arrow { stroke: #95a5a6; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-label { fill: #bdc3c7; font-family: Arial, sans-serif; font-size: 12px; text-anchor: middle; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#95a5a6" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <rect x="50" y="20" width="1100" height="50" class="box"/>
+  <text x="600" y="50" class="text" font-size="18" font-weight="bold">USER OPENS APP</text>
+
+  <!-- User Enters Login Credentials -->
+  <rect x="400" y="110" width="400" height="80" class="box"/>
+  <text x="600" y="140" class="text">User Enters Login</text>
+  <text x="600" y="160" class="text">Credentials (Username</text>
+  <text x="600" y="180" class="text">&amp; Password)</text>
+  <path d="M 600 70 L 600 110" class="arrow"/>
+
+  <!-- Behavioral Biometrics Captured -->
+  <rect x="400" y="230" width="400" height="60" class="box"/>
+  <text x="600" y="255" class="text">Behavioural Biometrics Captured</text>
+  <text x="600" y="275" class="text">(Invisible to User)</text>
+  <path d="M 600 190 L 600 230" class="arrow"/>
+
+  <!-- Bank Credentials Validated? -->
+  <path d="M 600 330 L 750 380 L 600 430 L 450 380 Z" class="decision"/>
+  <text x="600" y="375" class="text">Bank Credentials</text>
+  <text x="600" y="395" class="text">Validated?</text>
+  <path d="M 600 290 L 600 330" class="arrow"/>
+
+  <!-- NO path - Login Failed -->
+  <rect x="150" y="360" width="150" height="40" class="alert"/>
+  <text x="225" y="385" class="text">Login Failed</text>
+  <path d="M 450 380 L 300 380" class="arrow"/>
+  <text x="360" y="370" class="arrow-label">NO</text>
+
+  <!-- YES path -->
+  <path d="M 750 380 L 850 380" class="arrow"/>
+  <text x="810" y="370" class="arrow-label">YES</text>
+
+  <!-- MoneyGuard SDK Session -->
+  <rect x="850" y="350" width="300" height="60" class="process"/>
+  <text x="1000" y="375" class="text">MoneyGuard SDK</text>
+  <text x="1000" y="395" class="text">Registration</text>
+
+  <!-- Arrow down from MoneyGuard SDK -->
+  <path d="M 1000 410 L 1000 450" class="arrow"/>
+
+  <!-- Is User behavioural pattern enrolled? -->
+  <path d="M 1000 450 L 1120 500 L 1000 550 L 880 500 Z" class="decision"/>
+  <text x="1000" y="490" class="text-small">Is User Enrolled</text>
+  <text x="1000" y="505" class="text-small">for Behavioural Biometrics?</text>
+
+  <!-- NO path - Left to Enrollment -->
+  <path d="M 880 500 L 350 500" class="arrow"/>
+  <text x="600" y="490" class="arrow-label">NO</text>
+
+  <!-- YES path - Right to Verification -->
+  <path d="M 1120 500 L 1180 500 L 1180 650 L 1120 650" class="arrow"/>
+  <text x="1150" y="490" class="arrow-label">YES</text>
+
+  <!-- ENROLLMENT MODE -->
+  <rect x="50" y="580" width="600" height="60" class="process"/>
+  <text x="350" y="605" class="text" font-weight="bold">ENROLLMENT MODE</text>
+  <text x="350" y="625" class="text">(Background Process)</text>
+  <path d="M 350 500 L 350 580" class="arrow"/>
+
+  <!-- VERIFICATION MODE -->
+  <rect x="850" y="580" width="320" height="60" class="process"/>
+  <text x="1010" y="605" class="text" font-weight="bold">VERIFICATION MODE</text>
+  <text x="1010" y="625" class="text">(Identity Check)</text>
+  <path d="M 1010 550 L 1010 580" class="arrow"/>
+
+  <!-- Save Behavioural Biometrics for Enrollment -->
+  <rect x="150" y="680" width="400" height="60" class="box"/>
+  <text x="350" y="705" class="text">Save Behavioural Biometrics</text>
+  <text x="350" y="725" class="text">for Enrollment</text>
+  <path d="M 350 640 L 350 680" class="arrow"/>
+
+  <!-- Verify Behavioural Biometrics Against Stored Profile -->
+  <rect x="810" y="680" width="400" height="60" class="box"/>
+  <text x="1010" y="705" class="text">Verify Behavioural Biometrics</text>
+  <text x="1010" y="725" class="text">Against Stored Profile</text>
+  <path d="M 1010 640 L 1010 680" class="arrow"/>
+
+  <!-- Enrollment Progress -->
+  <rect x="150" y="780" width="400" height="100" class="box"/>
+  <text x="350" y="805" class="text-small">Enrollment Progress:</text>
+  <text x="350" y="825" class="text-small">• 1st Login: 1/3</text>
+  <text x="350" y="845" class="text-small">• 2nd Login: 2/3</text>
+  <text x="350" y="865" class="text-small">• 3rd Login: Complete</text>
+  <path d="M 350 740 L 350 780" class="arrow"/>
+
+  <!-- Does Pattern Match? -->
+  <path d="M 1010 780 L 1140 850 L 1010 920 L 880 850 Z" class="decision"/>
+  <text x="1010" y="850" class="text-small">Does Pattern Match?</text>
+  <path d="M 1010 740 L 1010 780" class="arrow"/>
+
+  <!-- Show Toast Message (Enrollment) -->
+  <rect x="50" y="920" width="600" height="80" class="success"/>
+  <text x="350" y="950" class="text">Show Toast Message:</text>
+  <text x="350" y="970" class="text-small">"Behavioral Biometrics</text>
+  <text x="350" y="990" class="text-small">data captured"</text>
+  <path d="M 350 880 L 350 920" class="arrow"/>
+
+  <!-- YES - Show Success Toast -->
+  <rect x="710" y="1040" width="300" height="80" class="success"/>
+  <text x="860" y="1070" class="text">Show Success Toast</text>
+  <text x="860" y="1090" class="text-small">"Behavioral</text>
+  <text x="860" y="1110" class="text-small">Biometrics verified ✓"</text>
+  <path d="M 880 850 L 860 850 L 860 1040" class="arrow"/>
+  <text x="870" y="840" class="arrow-label">YES</text>
+
+  <!-- NO - FRAUD DETECTED -->
+  <rect x="1060" y="1040" width="130" height="240" class="alert"/>
+  <text x="1125" y="1070" class="text-small" font-weight="bold">FRAUD DETECTED!</text>
+  <text x="1125" y="1090" class="text-small">Show Warning</text>
+  <text x="1125" y="1110" class="text-small">Dialog</text>
+  <text x="1125" y="1150" class="text-small" font-size="10">"Behavioural Biometrics</text>
+  <text x="1125" y="1170" class="text-small" font-size="10">Verification Failed</text>
+  <text x="1125" y="1190" class="text-small" font-size="10">This may indicate</text>
+  <text x="1125" y="1210" class="text-small" font-size="10">unauthorized</text>
+  <text x="1125" y="1230" class="text-small" font-size="10">access"</text>
+  <path d="M 1140 850 L 1180 850 L 1180 1040 L 1125 1040" class="arrow"/>
+  <text x="1170" y="840" class="arrow-label">NO</text>
+
+  <!-- Converging paths -->
+  <path d="M 350 1000 L 350 1400 L 600 1400" class="arrow"/>
+  <path d="M 860 1120 L 860 1400 L 600 1400" class="arrow"/>
+  <path d="M 1125 1280 L 1125 1400 L 600 1400" class="arrow"/>
+
+  <!-- Continue to Next Security Checks -->
+  <rect x="300" y="1400" width="600" height="100" class="box"/>
+  <text x="600" y="1435" class="text">Continue to Next</text>
+  <text x="600" y="1455" class="text">Security Checks:</text>
+  <text x="600" y="1475" class="text-small">• Credential Check</text>
+  <text x="600" y="1495" class="text-small">• Location Check</text>
+
+  <!-- Navigate to Dashboard -->
+  <rect x="400" y="1540" width="400" height="60" class="success"/>
+  <text x="600" y="1565" class="text" font-weight="bold">Navigate to</text>
+  <text x="600" y="1585" class="text" font-weight="bold">Dashboard</text>
+  <path d="M 600 1500 L 600 1540" class="arrow"/>
+
+</svg>
+
