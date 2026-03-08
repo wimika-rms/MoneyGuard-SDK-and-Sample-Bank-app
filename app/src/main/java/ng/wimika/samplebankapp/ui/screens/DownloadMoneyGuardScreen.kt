@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import ng.wimika.samplebankapp.Constants
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.R
 
@@ -118,7 +119,7 @@ fun DownloadMoneyGuardScreen(
                 DownloadContent(
                     onDownloadClick = {
                         coroutineScope.launch {
-                            sdkService?.utility()?.launchAppInstallation()
+                            sdkService?.utility()?.launchAppInstallation(bankCode = Constants.PARTNER_BANK_ID, bankAppId = Constants.BANK_APP_PACKAGE_ID)
                             // After launching the Play Store, start the periodic check
                             isCheckingForApp = true
                         }

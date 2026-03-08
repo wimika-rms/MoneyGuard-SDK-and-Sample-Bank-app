@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 2800">
+    <defs>
+        <style>
+            .box {
+                fill: #2c3e50;
+                stroke: #ecf0f1;
+                stroke-width: 2;
+            }
+
+            .decision {
+                fill: #34495e;
+                stroke: #ecf0f1;
+                stroke-width: 2;
+            }
+
+            .process {
+                fill: #16a085;
+                stroke: #ecf0f1;
+                stroke-width: 2;
+            }
+
+            .alert {
+                fill: #e74c3c;
+                stroke: #ecf0f1;
+                stroke-width: 2;
+            }
+
+            .success {
+                fill: #27ae60;
+                stroke: #ecf0f1;
+                stroke-width: 2;
+            }
+
+            .text {
+                fill: #ecf0f1;
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                text-anchor: middle;
+            }
+
+            .text-small {
+                fill: #ecf0f1;
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                text-anchor: middle;
+            }
+
+            .label {
+                fill: #ecf0f1;
+                font-family: Arial, sans-serif;
+                font-size: 13px;
+                font-weight: bold;
+            }
+
+            .arrow {
+                stroke: #95a5a6;
+                stroke-width: 2;
+                fill: none;
+                marker-end: url(#arrowhead);
+            }
+
+            .arrow-label {
+                fill: #bdc3c7;
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                text-anchor: middle;
+            }
+        </style>
+        <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <polygon points="0 0, 10 3, 0 6" fill="#95a5a6" />
+        </marker>
+    </defs>
+
+    <!-- Title -->
+    <rect x="50" y="20" width="1100" height="50" class="box" />
+    <text x="600" y="50" class="text" font-size="18" font-weight="bold">USER OPENS APP</text>
+
+    <!-- User Enters Login Credentials -->
+    <rect x="400" y="110" width="400" height="80" class="box" />
+    <text x="600" y="140" class="text">User Enters Login</text>
+    <text x="600" y="160" class="text">Credentials (Username</text>
+    <text x="600" y="180" class="text">&amp; Password)</text>
+    <path d="M 600 70 L 600 110" class="arrow" />
+
+    <!-- Bank Credentials Validated? -->
+    <!-- Shifted UP by 70px to shorten the arrow from 140px to 70px -->
+    <path d="M 600 260 L 750 310 L 600 360 L 450 310 Z" class="decision" />
+    <text x="600" y="305" class="text">Bank Credentials</text>
+    <text x="600" y="325" class="text">Validated?</text>
+    <path d="M 600 190 L 600 260" class="arrow" />
+
+    <!-- NO path - Login Failed -->
+    <rect x="150" y="290" width="150" height="40" class="alert" />
+    <text x="225" y="315" class="text">Login Failed</text>
+    <path d="M 450 310 L 300 310" class="arrow" />
+    <text x="360" y="300" class="arrow-label">NO</text>
+
+    <!-- YES path -->
+    <path d="M 750 310 L 850 310" class="arrow" />
+    <text x="810" y="300" class="arrow-label">YES</text>
+
+    <!-- MoneyGuard SDK Session -->
+    <rect x="850" y="280" width="300" height="60" class="process" />
+    <text x="1000" y="305" class="text">MoneyGuard SDK</text>
+    <text x="1000" y="325" class="text">Session</text>
+
+    <!-- Arrow down from MoneyGuard SDK -->
+    <path d="M 1000 340 L 1000 380" class="arrow" />
+
+    <!-- Is User behavioural pattern enrolled? -->
+    <path d="M 1000 380 L 1120 430 L 1000 480 L 880 430 Z" class="decision" />
+    <text x="1000" y="420" class="text-small">Is User Enrolled</text>
+    <text x="1000" y="435" class="text-small">for Behavioural Biometrics?</text>
+
+    <!-- NO path - Left to Enrollment -->
+    <path d="M 880 430 L 350 430" class="arrow" />
+    <text x="600" y="420" class="arrow-label">NO</text>
+
+    <!-- YES path - Right to Verification -->
+    <path d="M 1120 430 L 1180 430 L 1180 580 L 1120 580" class="arrow" />
+    <text x="1150" y="420" class="arrow-label">YES</text>
+
+    <!-- ENROLLMENT MODE -->
+    <rect x="50" y="510" width="600" height="60" class="process" />
+    <text x="350" y="535" class="text" font-weight="bold">ENROLLMENT MODE</text>
+    <text x="350" y="555" class="text">(Background Process)</text>
+    <path d="M 350 430 L 350 510" class="arrow" />
+
+    <!-- VERIFICATION MODE -->
+    <rect x="850" y="510" width="320" height="60" class="process" />
+    <text x="1010" y="535" class="text" font-weight="bold">VERIFICATION MODE</text>
+    <text x="1010" y="555" class="text">(Identity Check)</text>
+    <path d="M 1010 480 L 1010 510" class="arrow" />
+
+    <!-- Save Behavioural Biometrics for Enrollment -->
+    <rect x="150" y="610" width="400" height="60" class="box" />
+    <text x="350" y="635" class="text">Save Behavioural Biometrics</text>
+    <text x="350" y="655" class="text">for Enrollment</text>
+    <path d="M 350 570 L 350 610" class="arrow" />
+
+    <!-- Verify Behavioural Biometrics Against Stored Profile -->
+    <rect x="810" y="610" width="400" height="60" class="box" />
+    <text x="1010" y="635" class="text">Verify Behavioural Biometrics</text>
+    <text x="1010" y="655" class="text">Against Stored Profile</text>
+    <path d="M 1010 570 L 1010 610" class="arrow" />
+
+    <!-- Enrollment Progress -->
+    <rect x="150" y="710" width="400" height="100" class="box" />
+    <text x="350" y="735" class="text-small">Enrollment Progress:</text>
+    <text x="350" y="755" class="text-small">• 1st Login: 1/3</text>
+    <text x="350" y="775" class="text-small">• 2nd Login: 2/3</text>
+    <text x="350" y="795" class="text-small">• 3rd Login: Complete</text>
+    <path d="M 350 670 L 350 710" class="arrow" />
+
+    <!-- Does Pattern Match? -->
+    <path d="M 1010 710 L 1140 780 L 1010 850 L 880 780 Z" class="decision" />
+    <text x="1010" y="780" class="text-small">Does Pattern Match?</text>
+    <path d="M 1010 670 L 1010 710" class="arrow" />
+
+    <!-- Show Toast Message (Enrollment) -->
+    <rect x="50" y="850" width="600" height="80" class="success" />
+    <text x="350" y="880" class="text">Show Toast Message:</text>
+    <text x="350" y="900" class="text-small">"Behavioral Biometrics</text>
+    <text x="350" y="920" class="text-small">data captured"</text>
+    <path d="M 350 810 L 350 850" class="arrow" />
+
+    <!-- YES - Show Success Toast -->
+    <rect x="710" y="970" width="300" height="80" class="success" />
+    <text x="860" y="1000" class="text">Show Success Toast</text>
+    <text x="860" y="1020" class="text-small">"Behavioral</text>
+    <text x="860" y="1040" class="text-small">Biometrics verified ✓"</text>
+    <path d="M 880 780 L 860 780 L 860 970" class="arrow" />
+    <text x="870" y="770" class="arrow-label">YES</text>
+
+    <!-- NO - FRAUD DETECTED -->
+    <rect x="1060" y="970" width="130" height="240" class="alert" />
+    <text x="1125" y="1000" class="text-small" font-weight="bold">FRAUD DETECTED!</text>
+    <text x="1125" y="1020" class="text-small">Show Warning</text>
+    <text x="1125" y="1040" class="text-small">Dialog</text>
+    <text x="1125" y="1080" class="text-small" font-size="10">"Behavioural Biometrics</text>
+    <text x="1125" y="1100" class="text-small" font-size="10">Verification Failed</text>
+    <text x="1125" y="1120" class="text-small" font-size="10">This may indicate</text>
+    <text x="1125" y="1140" class="text-small" font-size="10">unauthorized</text>
+    <text x="1125" y="1160" class="text-small" font-size="10">access"</text>
+    <path d="M 1140 780 L 1180 780 L 1180 970 L 1125 970" class="arrow" />
+    <text x="1170" y="770" class="arrow-label">NO</text>
+
+    <!-- Converging paths -->
+    <path d="M 350 930 L 350 1330 L 600 1330" class="arrow" />
+    <path d="M 860 1050 L 860 1330 L 600 1330" class="arrow" />
+    <path d="M 1125 1210 L 1125 1330 L 600 1330" class="arrow" />
+
+    <!-- Continue to Next Security Checks -->
+    <rect x="300" y="1330" width="600" height="100" class="box" />
+    <text x="600" y="1365" class="text">Continue to Next</text>
+    <text x="600" y="1385" class="text">Security Checks:</text>
+    <text x="600" y="1405" class="text-small">• Credential Check</text>
+    <text x="600" y="1425" class="text-small">• Location Check</text>
+
+    <!-- Navigate to Dashboard -->
+    <rect x="400" y="1470" width="400" height="60" class="success" />
+    <text x="600" y="1495" class="text" font-weight="bold">Navigate to</text>
+    <text x="600" y="1515" class="text" font-weight="bold">Dashboard</text>
+    <path d="M 600 1430 L 600 1470" class="arrow" />
+
+</svg>

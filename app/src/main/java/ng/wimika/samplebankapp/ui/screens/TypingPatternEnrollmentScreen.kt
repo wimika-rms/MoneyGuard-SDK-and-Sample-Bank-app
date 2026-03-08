@@ -91,7 +91,7 @@ fun TypingPatternScreen(
         scope.launch {
             isSharingLogs = true
             try {
-                val userEmail = preferenceManager?.getUserEmail() ?: "unknown@user.com"
+                val userEmail = preferenceManager?.getUserEmail() ?: "unknownuse"
                 val androidVersion = Build.VERSION.RELEASE
                 val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
                 val logContent = debugLogs.joinToString("\n")
