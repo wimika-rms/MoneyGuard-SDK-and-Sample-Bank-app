@@ -45,6 +45,10 @@ fun AccountSelectionScreen(
 
     var accounts by remember { mutableStateOf(flowState?.allAccounts ?: emptyList()) }
     var selectedAccounts by remember { mutableStateOf(flowState?.selectedAccountIds ?: emptySet()) }
+    val allAccountIds = remember(accounts) {
+        val initialCapacity = (accounts.size / 0.75f).toInt() + 1
+        accounts.mapTo(HashSet(initialCapacity)) { it.id.toString() }
+    }
     var isLoading by remember { mutableStateOf(flowState?.allAccounts?.isEmpty() != false) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -176,7 +180,7 @@ fun AccountSelectionScreen(
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .clickable {
-                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else accounts.map { it.id.toString() }.toSet()
+                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else allAccountIds
                         selectedAccounts = newSelection
                         flowState?.setSelectedAccountIds(newSelection)
                     }
@@ -184,7 +188,7 @@ fun AccountSelectionScreen(
                 RadioButton(
                     selected = selectedAccounts.size == accounts.size && accounts.isNotEmpty(),
                     onClick = {
-                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else accounts.map { it.id.toString() }.toSet()
+                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else allAccountIds
                         selectedAccounts = newSelection
                         flowState?.setSelectedAccountIds(newSelection)
                     },
