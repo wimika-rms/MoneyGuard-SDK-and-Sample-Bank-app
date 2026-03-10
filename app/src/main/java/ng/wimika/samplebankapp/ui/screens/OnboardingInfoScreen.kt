@@ -57,9 +57,9 @@ fun OnboardingInfoScreen(
     
     // Load onboarding info when screen is first loaded
     LaunchedEffect(Unit) {
-        if (sdkService != null && !token.isNullOrEmpty()) {
+       // if (sdkService != null && !token.isNullOrEmpty()) {
             try {
-                val result = sdkService.inAppContent()?.getInAppContent(token, 1)
+                val result = sdkService?.inAppContent()?.getInAppContent(token.toString(), 1)
                 result?.onSuccess { response ->
                     onboardingSlides = response.onboardingSlides
                     // Set learn more URL - you may need to adjust this based on your requirements
@@ -80,14 +80,15 @@ fun OnboardingInfoScreen(
             } finally {
                 isLoading = false
             }
-        } else {
-            Toast.makeText(
-                context,
-                "Please login to view onboarding info",
-                Toast.LENGTH_SHORT
-            ).show()
-            isLoading = false
-        }
+       // }
+//        else {
+//            Toast.makeText(
+//                context,
+//                "Please login to view onboarding info",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//            isLoading = false
+//        }
     }
     
     Scaffold(

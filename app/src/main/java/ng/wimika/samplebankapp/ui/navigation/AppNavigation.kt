@@ -93,18 +93,28 @@ fun AppNavigation() {
                         deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
                     )
                     
+                    Log.d("MG_SDK_TRACE", "━━━ authentication().trustDevice() ━━━")
+                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: token=${token.take(12)}...")
+                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: deviceId=${deviceId}")
+                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: userId=${trustedDeviceRequest.userId}")
+                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: installationId=${trustedDeviceRequest.installationId}")
+                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: deviceName=${trustedDeviceRequest.deviceName}")
+                    
                     Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] 📡 Calling trustDevice API with deviceId $deviceId...")
                     sdkService.authentication()?.trustDevice(token, deviceId, trustedDeviceRequest)?.collect { result ->
                         when (result) {
                             is MoneyGuardResult.Success -> {
                                 trustResult = "Device trusted successfully! You can now securely access your account on this device."
+                                Log.d("MG_SDK_TRACE", "  ⬅️ RESULT: SUCCESS ✅ — device is now trusted")
                                 Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ Device trust SUCCESSFUL - Device is now trusted")
                             }
                             is MoneyGuardResult.Failure -> {
                                 trustResult = "Failed to trust device: ${result.error.message}"
+                                Log.e("MG_SDK_TRACE", "  ⬅️ RESULT: FAILURE ❌ — ${result.error.message}")
                                 Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ❌ Device trust FAILED: ${result.error.message}")
                             }
                             is MoneyGuardResult.Loading -> {
+                                Log.d("MG_SDK_TRACE", "  ⏳ RESULT: loading...")
                                 Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ⏳ Device trust in progress...")
                             }
                         }

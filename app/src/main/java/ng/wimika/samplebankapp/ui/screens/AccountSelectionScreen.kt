@@ -40,7 +40,7 @@ fun AccountSelectionScreen(
     val context = LocalContext.current
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
-    val token = preferenceManager?.getMoneyGuardToken()
+    val userId = preferenceManager?.getBankSessionId()
     val flowState = MoneyGuardClientApp.accountProtectionFlowState
 
     var accounts by remember { mutableStateOf(flowState?.allAccounts ?: emptyList()) }
@@ -54,10 +54,10 @@ fun AccountSelectionScreen(
 
     // Load accounts logic
     LaunchedEffect(Unit) {
-        if (flowState?.allAccounts?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty()) {
+        if (flowState?.allAccounts?.isEmpty() != false && sdkService != null) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
-                val result = moneyGuardPolicy.getUserAccounts(token, partnerBankId = 101)
+                val result = moneyGuardPolicy.getUserAccounts(userId.toString(), partnerId = ng.wimika.samplebankapp.Constants.PARTNER_BANK_ID)
                 result.fold(
                     onSuccess = { response ->
                         accounts = response.bankAccounts
