@@ -49,10 +49,16 @@ fun DashboardScreen(
             //token?.let {
             if(token != null)
             {
+                Log.d("MG_SDK_TRACE", "━━━ utility().checkMoneyguardPolicyStatus() [Dashboard] ━━━")
+                Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: token=${token.take(12)}...")
                 moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(token)
+                Log.d("MG_SDK_TRACE", "  ⬅️ RESULT: policyStatus=$moneyguardStatus")
             }
             else{
+                Log.d("MG_SDK_TRACE", "━━━ utility().checkMoneyguardPolicyStatus() [Dashboard] ━━━")
+                Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: token=(empty)")
                 moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus("")
+                Log.d("MG_SDK_TRACE", "  ⬅️ RESULT: policyStatus=$moneyguardStatus")
             }
 
             //}
@@ -410,8 +416,14 @@ private fun RiskScoreCard() {
         if (sdkService != null && !token.isNullOrEmpty()) {
             while (true) {
                 try {
+                    Log.d("MG_SDK_TRACE", "━━━ riskProfile().getRiskProfile() [Dashboard poll] ━━━")
+                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: (none — uses cached session)")
                     Log.d("RiskProfile", "Checking risk profile")
                     val riskProfile = sdkService.riskProfile()?.getRiskProfile()
+                    Log.d("MG_SDK_TRACE", "  ⬅️ RESULT: riskProfile entries=${riskProfile?.size ?: 0}")
+                    riskProfile?.forEachIndexed { i, entry ->
+                        Log.d("MG_SDK_TRACE", "  ⬅️ RESULT: entry[$i] score=${entry.score.value}, name=${entry.score}")
+                    }
                     Log.d("RiskProfile", "Risk profile fetched: $riskProfile")
                     val currentRiskScore = riskProfile?.sumOf { it.score.value.toInt() } ?: 0
                     

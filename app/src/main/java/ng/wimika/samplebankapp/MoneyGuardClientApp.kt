@@ -1,6 +1,7 @@
 package ng.wimika.samplebankapp
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -24,6 +25,7 @@ class MoneyGuardClientApp: Application(), DefaultLifecycleObserver {
         
         // Background timeout: clear preferences after 30 minutes in background
         private const val BACKGROUND_TIMEOUT_MS = 30 * 60 * 1000L // 30 minutes
+        private const val SDK_TAG = "MG_SDK_TRACE"
     }
 
     private val appScope = CoroutineScope(Dispatchers.IO)
@@ -32,7 +34,12 @@ class MoneyGuardClientApp: Application(), DefaultLifecycleObserver {
     override fun onCreate() {
         super<Application>.onCreate()
         preferenceManager = PreferenceManager(this)
+
+        Log.d(SDK_TAG, "━━━ MoneyGuardSdk.initialize() ━━━")
+        Log.d(SDK_TAG, "  ➡️ PARAMS: context=${this::class.simpleName}, packageName=$packageName")
         sdkService = MoneyGuardSdk.initialize(this)
+        Log.d(SDK_TAG, "  ⬅️ RESULT: sdkService=${if (sdkService != null) "initialized ✅" else "null ❌"}")
+
         accountProtectionFlowState = AccountProtectionFlowState()
 
         // Register for process lifecycle events

@@ -40,20 +40,24 @@ fun AccountSelectionScreen(
     val context = LocalContext.current
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
-    val token = preferenceManager?.getMoneyGuardToken()
+    val userId = preferenceManager?.getBankSessionId()
     val flowState = MoneyGuardClientApp.accountProtectionFlowState
 
     var accounts by remember { mutableStateOf(flowState?.allAccounts ?: emptyList()) }
     var selectedAccounts by remember { mutableStateOf(flowState?.selectedAccountIds ?: emptySet()) }
+    val allAccountIds = remember(accounts) {
+        val initialCapacity = (accounts.size / 0.75f).toInt() + 1
+        accounts.mapTo(HashSet(initialCapacity)) { it.id.toString() }
+    }
     var isLoading by remember { mutableStateOf(flowState?.allAccounts?.isEmpty() != false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     // Load accounts logic
     LaunchedEffect(Unit) {
-        if (flowState?.allAccounts?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty()) {
+        if (flowState?.allAccounts?.isEmpty() != false && sdkService != null) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
-                val result = moneyGuardPolicy.getUserAccounts(token, partnerBankId = 101)
+                val result = moneyGuardPolicy.getUserAccounts(userId.toString(), partnerId = ng.wimika.samplebankapp.Constants.PARTNER_BANK_ID)
                 result.fold(
                     onSuccess = { response ->
                         accounts = response.bankAccounts
@@ -176,7 +180,7 @@ fun AccountSelectionScreen(
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .clickable {
-                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else accounts.map { it.id.toString() }.toSet()
+                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else allAccountIds
                         selectedAccounts = newSelection
                         flowState?.setSelectedAccountIds(newSelection)
                     }
@@ -184,7 +188,7 @@ fun AccountSelectionScreen(
                 RadioButton(
                     selected = selectedAccounts.size == accounts.size && accounts.isNotEmpty(),
                     onClick = {
-                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else accounts.map { it.id.toString() }.toSet()
+                        val newSelection = if (selectedAccounts.size == accounts.size) emptySet() else allAccountIds
                         selectedAccounts = newSelection
                         flowState?.setSelectedAccountIds(newSelection)
                     },

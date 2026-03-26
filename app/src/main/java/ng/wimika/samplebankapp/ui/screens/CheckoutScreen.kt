@@ -21,6 +21,7 @@ import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.local.MoneyGuardSetupPreferences
 import kotlinx.coroutines.launch
 import ng.wimika.moneyguard_sdk.services.moneyguard_policy.models.BankAccount
+import ng.wimika.samplebankapp.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +32,7 @@ fun CheckoutScreen(
     val context = LocalContext.current
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
-    val token = preferenceManager?.getMoneyGuardToken()
+    val userId = preferenceManager?.getBankSessionId()
     val flowState = MoneyGuardClientApp.accountProtectionFlowState
     val coroutineScope = rememberCoroutineScope()
 
@@ -50,10 +51,10 @@ fun CheckoutScreen(
 
     // Fetch accounts from SDK (only if not already loaded)
     LaunchedEffect(Unit) {
-        if (flowState?.allAccounts?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty()) {
+        if (flowState?.allAccounts?.isEmpty() != false && sdkService != null) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
-                val result = moneyGuardPolicy.getUserAccounts(token, partnerBankId = 101)
+                val result = moneyGuardPolicy.getUserAccounts(userId.toString(), partnerId = Constants.PARTNER_BANK_ID)
                 result.fold(
                     onSuccess = { response ->
                         accounts = response.bankAccounts
@@ -240,7 +241,8 @@ fun CheckoutScreen(
                             try {
                                 val policy = sdkService?.policy()
                                 val result = policy?.createPolicy(
-                                    token = token ?: "",
+                                    userId = userId ?: "",
+                                    partnerId = ng.wimika.samplebankapp.Constants.PARTNER_BANK_ID,
                                     policyOptionId = flowState?.selectedPolicyOption?.id?.toString() ?: "",
                                     coveredAccountIds = flowState?.selectedAccountIds?.toList() ?: emptyList(),
                                     debitAccountId = selectedAccount?.id.toString(),

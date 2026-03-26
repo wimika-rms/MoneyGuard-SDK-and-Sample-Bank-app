@@ -76,6 +76,7 @@ class LoginViewModel(
     private val _sideEffect = Channel<LoginSideEffect>()
     val sideEffect = _sideEffect.receiveAsFlow()
     private val LOG_TAG = "MONEYGUARD_LOGGER"
+    private val SDK_TAG = "MG_SDK_TRACE"
 
     private val moneyGuardPrelaunch: MoneyGuardPrelaunch? = sdkService?.prelaunch()
     //private val typingProfileService = sdkService?.getTypingProfile()
@@ -125,10 +126,18 @@ class LoginViewModel(
 
         viewModelScope.launch {
             try {
+                Log.d(SDK_TAG, "━━━ prelaunch().startup() ━━━")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: (none — passive device/network scan)")
                 val startupRisk = moneyGuardPrelaunch?.startup()
+                Log.d(SDK_TAG, "  ⬅️ RESULT: startupRisk=${startupRisk}")
+                Log.d(SDK_TAG, "  ⬅️ RESULT: risks count=${startupRisk?.risks?.size ?: 0}")
+                startupRisk?.risks?.forEachIndexed { i, risk ->
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: risk[$i] name=${risk.name}, status=${risk.status}, details=${risk.additionalDetails}")
+                }
                 val risks = startupRisk?.risks?.filter {
                     it.status == RiskStatus.RISK_STATUS_WARN || it.status == RiskStatus.RISK_STATUS_UNSAFE
                 } ?: emptyList()
+                Log.d(SDK_TAG, "  ⬅️ FILTERED: ${risks.size} risks with WARN/UNSAFE status")
 
                 _uiState.update { it.copy(prelaunchRisks = risks, isPrelaunchChecking = false) }
 
@@ -141,6 +150,7 @@ class LoginViewModel(
                     _sideEffect.send(LoginSideEffect.ShowRiskDialog(risks.first()))
                 }
             } catch (e: Exception) {
+                Log.e(SDK_TAG, "  ❌ prelaunch().startup() EXCEPTION: ${e.message}", e)
                 _uiState.update { it.copy(isPrelaunchChecking = false) }
             }
         }
@@ -185,17 +195,36 @@ class LoginViewModel(
                 preferenceManager?.saveSuspiciousLoginStatus(false)
                 preferenceManager?.saveLoggedOut(false) // Clear logged out flag on successful login
 
-                // Step 2: MoneyGuard Registration
+                // Step 2: Check if user is a MoneyGuard customer
+                val isCustomer = try {
+                    Log.d(SDK_TAG, "━━━ policy().isCustomer() ━━━")
+                    Log.d(SDK_TAG, "  ➡️ PARAMS: userId=${sessionData.sessionId.take(8)}..., partnerId=${Constants.PARTNER_BANK_ID}")
+                    val result = sdkService?.policy()?.isCustomer(sessionData.sessionId, Constants.PARTNER_BANK_ID)
+                    val customerResult = result?.getOrNull() ?: false
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: isCustomer=$customerResult")
+                    customerResult
+                } catch (e: Exception) {
+                    Log.e(SDK_TAG, "  ❌ policy().isCustomer() EXCEPTION: ${e.message}", e)
+                    true // Fail open: assume customer and proceed with registration
+                }
+
+                if (!isCustomer) {
+                    Log.d(SDK_TAG, "  ➡️ User is NOT a MoneyGuard customer, skipping registration → handlePostLoginFlow")
+                    handlePostLoginFlow()
+                    return@launch
+                }
+
+                // Step 3: MoneyGuard Registration (only if user is a customer)
                 val registrationResult = registerWithMoneyGuard(sessionData.sessionId)
                 if (registrationResult == RegistrationResult.NEEDS_VERIFICATION) {
                     _sideEffect.send(LoginSideEffect.ShowUntrustedDeviceDialog)
                     return@launch
                 }
 
-                // Step 2.5: Typing Pattern Check (Enrollment or Verification)
+                // Step 3.5: Typing Pattern Check (Enrollment or Verification)
                 //handleTypingPatternCheck()
 
-                // Step 3: Post-Login Flow (Credential & Location Checks)
+                // Step 4: Post-Login Flow (Credential & Location Checks)
                 // This will be called after typing pattern check completes
                  handlePostLoginFlow()
             } catch (e: Exception) {
@@ -206,34 +235,55 @@ class LoginViewModel(
 
     private suspend fun registerWithMoneyGuard(sessionId: String): RegistrationResult {
         return try {
+            Log.d(SDK_TAG, "━━━ authentication().register() ━━━")
+            Log.d(SDK_TAG, "  ➡️ PARAMS: partnerBankId=${Constants.PARTNER_BANK_ID}, partnerSessionToken=${sessionId.take(8)}...")
             val resultFlow = sdkService?.authentication()?.register(
                 parteBankId = Constants.PARTNER_BANK_ID,
                 partnerSessionToken = sessionId
             )
 
             val finalResult = resultFlow?.first { it !is MoneyGuardResult.Loading }
+            Log.d(SDK_TAG, "  ⬅️ RESULT TYPE: ${finalResult?.javaClass?.simpleName}")
 
             when (finalResult) {
                 is MoneyGuardResult.Success -> {
                     val response = finalResult.data
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: token=${if (response.token.isNotEmpty()) "${response.token.take(12)}..." else "(empty)"}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: installationId=${response.installationId}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: firstName=${response.userDetails.firstName}, lastName=${response.userDetails.lastName}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: highRiskThreshold=${response.highRiskThreshold}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: sessionResultFlag=${response.result}")
                     if (response.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(response.token)
                         preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
                         preferenceManager?.saveMoneyguardUserNames(response.userDetails.firstName, response.userDetails.lastName)
                         preferenceManager?.saveHighRiskThreshold(response.highRiskThreshold)
                     }
-                    if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa
-                        && sdkService?.utility()?.checkMoneyguardPolicyStatus(response.token) == MoneyGuardAppStatus.Active
-                    ) {
-                        RegistrationResult.NEEDS_VERIFICATION
+                    if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
+                        Log.d(SDK_TAG, "━━━ utility().checkMoneyguardPolicyStatus() [inside register] ━━━")
+                        Log.d(SDK_TAG, "  ➡️ PARAMS: token=${response.token.take(12)}...")
+                        val policyStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(response.token)
+                        Log.d(SDK_TAG, "  ⬅️ RESULT: policyStatus=$policyStatus")
+                        if (policyStatus == MoneyGuardAppStatus.Active) {
+                            RegistrationResult.NEEDS_VERIFICATION
+                        } else {
+                            RegistrationResult.SUCCESS
+                        }
                     } else {
                         RegistrationResult.SUCCESS
                     }
                 }
-                is MoneyGuardResult.Failure -> RegistrationResult.SUCCESS // Fail open: proceed even if registration fails
-                else -> RegistrationResult.SUCCESS // Fail open
+                is MoneyGuardResult.Failure -> {
+                    Log.e(SDK_TAG, "  ❌ RESULT: registration failed: ${finalResult.error.message}")
+                    RegistrationResult.SUCCESS // Fail open: proceed even if registration fails
+                }
+                else -> {
+                    Log.w(SDK_TAG, "  ⚠️ RESULT: unexpected result type: $finalResult")
+                    RegistrationResult.SUCCESS // Fail open
+                }
             }
         } catch (e: Exception) {
+            Log.e(SDK_TAG, "  ❌ authentication().register() EXCEPTION: ${e.message}", e)
             RegistrationResult.SUCCESS // Fail open
         }
     }
@@ -242,14 +292,19 @@ class LoginViewModel(
         viewModelScope.launch {
             val token = preferenceManager?.getMoneyGuardToken()
             if (sdkService == null || token.isNullOrEmpty()) {
+                Log.d(SDK_TAG, "━━━ handlePostLoginFlow: skipping SDK checks (sdk=${sdkService != null}, token=${!token.isNullOrEmpty()}) ━━━")
                 _sideEffect.send(LoginSideEffect.NavigateToDashboard)
                 return@launch
             }
 
+            Log.d(SDK_TAG, "━━━ utility().checkMoneyguardPolicyStatus() [post-login] ━━━")
+            Log.d(SDK_TAG, "  ➡️ PARAMS: token=${token.take(12)}...")
             val status = sdkService.utility()?.checkMoneyguardPolicyStatus(token)
+            Log.d(SDK_TAG, "  ⬅️ RESULT: policyStatus=$status")
             if (status == MoneyGuardAppStatus.Active) {
                 performCredentialCheck(token)
             } else {
+                Log.d(SDK_TAG, "  ➡️ Policy not active, skipping credential/location checks → Dashboard")
                 _sideEffect.send(LoginSideEffect.NavigateToDashboard)
             }
         }
@@ -267,15 +322,26 @@ class LoginViewModel(
                     hashAlgorithm = HashAlgorithm.SHA256
                 )
 
+                Log.d(SDK_TAG, "━━━ authentication().credentialCheck() ━━━")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: token=${token.take(12)}...")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.username=${credential.username}")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.domain=${credential.domain}")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.hashAlgorithm=${credential.hashAlgorithm}")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.passwordHash=${hashedPasswordLast3.take(12)}...")
+
                 sdkService?.authentication()?.credentialCheck(token, credential) { result ->
+                    Log.d(SDK_TAG, "  ⬅️ RESULT TYPE: ${result.javaClass.simpleName}")
                     val statusText = if (result is MoneyGuardResult.Success) {
+                        Log.d(SDK_TAG, "  ⬅️ RESULT: status=${result.data.status}")
                         if (result.data.status == RiskStatus.RISK_STATUS_UNSAFE) {
+                            Log.w(SDK_TAG, "  ⚠️ RESULT: credential is UNSAFE — identity compromised")
                             preferenceManager?.setIdentityCompromised(true)
                             preferenceManager?.saveRiskToRegister("identity_compromise")
                         }
                         "Credential Check - ${result.data.status}"
                     }
                     else {
+                        Log.w(SDK_TAG, "  ⚠️ RESULT: credential check returned non-success: $result")
                         "Credential Check - Could not determine status"
                     }
                     viewModelScope.launch {
@@ -287,6 +353,7 @@ class LoginViewModel(
                     }
                 }
             } catch (e: Exception) {
+                Log.e(SDK_TAG, "  ❌ authentication().credentialCheck() EXCEPTION: ${e.message}", e)
                 // Failsafe: proceed to location check if credential check has an error
                 performLocationCheck()
             }
@@ -301,7 +368,15 @@ class LoginViewModel(
             }
 
             try {
+                Log.d(SDK_TAG, "━━━ utility().checkLocation() ━━━")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: token=${token.take(12)}...")
                 val response = sdkService?.utility()?.checkLocation(token)
+
+                Log.d(SDK_TAG, "  ⬅️ RESULT: response=${response}")
+                Log.d(SDK_TAG, "  ⬅️ RESULT: locations count=${response?.data?.size ?: 0}")
+                response?.data?.forEachIndexed { i, item ->
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: location[$i]=$item")
+                }
 
                 //Use joinToString to format the list with a newline for each item
                 val formattedList = response?.data?.joinToString(separator = "\n") { item ->
@@ -310,12 +385,15 @@ class LoginViewModel(
 
                 Log.i(LOG_TAG, "[SampleBankApp|LoginviewModel] Location check:\n$formattedList")
                 if (response?.data?.isNotEmpty() == true) {
+                    Log.w(SDK_TAG, "  ⚠️ Unusual locations detected → showing dialog")
                     preferenceManager?.saveRiskToRegister("unusual_location")
                     _sideEffect.send(LoginSideEffect.ShowUnusualLocationDialog)
                 } else {
+                    Log.d(SDK_TAG, "  ✅ No unusual locations → Dashboard")
                     _sideEffect.send(LoginSideEffect.NavigateToDashboard)
                 }
             } catch (e: Exception) {
+                Log.e(SDK_TAG, "  ❌ utility().checkLocation() EXCEPTION: ${e.message}", e)
                 Log.e(LOG_TAG, "[SampleBankApp|LoginviewModel] ❌ Error during location check: ${e.message}")
                 // Failsafe: proceed to dashboard if location check fails
                 _sideEffect.send(LoginSideEffect.NavigateToDashboard)

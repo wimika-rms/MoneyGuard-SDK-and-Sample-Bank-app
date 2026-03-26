@@ -36,7 +36,6 @@ fun PolicyOptionSelectionScreen(
     val context = LocalContext.current
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
-    val token = preferenceManager?.getMoneyGuardToken()
     val flowState = MoneyGuardClientApp.accountProtectionFlowState
     val coverageLimitId = flowState?.selectedCoverageLimit?.id
     
@@ -48,10 +47,10 @@ fun PolicyOptionSelectionScreen(
 
     // Load policy options when screen is first loaded (only if not already loaded)
     LaunchedEffect(Unit) {
-        if (flowState?.allPolicyOptions?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty() && coverageLimitId != null) {
+        if (flowState?.allPolicyOptions?.isEmpty() != false && sdkService != null && coverageLimitId != null) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
-                val result = moneyGuardPolicy.getPolicyOptions(token, coverageLimitId)
+                val result = moneyGuardPolicy.getPolicyOptions(coverageLimitId)
                 result.fold(
                     onSuccess = { response ->
                         policyOptions = response.policyOptions

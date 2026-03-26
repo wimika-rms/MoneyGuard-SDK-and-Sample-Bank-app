@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" style="background-color: white;">
+  <defs>
+    <style>
+      .device-box { fill: #E3F2FD; stroke: #1976D2; stroke-width: 2; }
+      .app-box { fill: #F3E5F5; stroke: #7B1FA2; stroke-width: 2; }
+      .screen-box { fill: #FFF3E0; stroke: #F57C00; stroke-width: 2; }
+      .viewmodel-box { fill: #E8F5E9; stroke: #388E3C; stroke-width: 2; }
+      .sdk-box { fill: #FCE4EC; stroke: #C2185B; stroke-width: 2; }
+      .backend-box { fill: #E0F2F1; stroke: #00796B; stroke-width: 2; }
+      .service-box { fill: #FFF9C4; stroke: #F57F17; stroke-width: 2; }
+      .text { fill: #333; font-family: Arial, sans-serif; font-size: 13px; text-anchor: middle; }
+      .text-small { fill: #555; font-family: Arial, sans-serif; font-size: 11px; text-anchor: middle; }
+      .title { fill: #1976D2; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; text-anchor: middle; }
+      .arrow { stroke: #333; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-bidirectional { stroke: #333; stroke-width: 2; fill: none; marker-start: url(#arrowhead-start); marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#333" />
+    </marker>
+    <marker id="arrowhead-start" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#333" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="450" y="25" style="font-size: 20px; font-weight: bold; text-anchor: middle; fill: #1976D2;">Behavioral Biometrics - System Architecture</text>
+  
+  <!-- USER DEVICE CONTAINER -->
+  <rect x="30" y="60" width="420" height="480" rx="10" class="device-box"/>
+  <text x="240" y="85" class="title">USER DEVICE (Android)</text>
+  
+  <!-- Sample Bank App Container -->
+  <rect x="50" y="100" width="380" height="420" rx="8" class="app-box"/>
+  <text x="240" y="120" class="title">Sample Bank App</text>
+  
+  <!-- LoginScreen.kt -->
+  <rect x="70" y="140" width="340" height="80" rx="5" class="screen-box"/>
+  <text x="240" y="160" class="title">LoginScreen.kt</text>
+  <text x="240" y="180" class="text-small">• Captures username typing</text>
+  <text x="240" y="195" class="text-small">• Native EditText with typing service</text>
+  <text x="240" y="210" class="text-small">• Handles overlay permission</text>
+  
+  <!-- Arrow down -->
+  <path d="M 240 220 L 240 250" class="arrow"/>
+  
+  <!-- LoginViewModel.kt -->
+  <rect x="70" y="250" width="340" height="95" rx="5" class="viewmodel-box"/>
+  <text x="240" y="270" class="title">LoginViewModel.kt</text>
+  <text x="240" y="290" class="text-small">• Orchestrates enrollment/verification</text>
+  <text x="240" y="305" class="text-small">• Checks isEnrolled status</text>
+  <text x="240" y="320" class="text-small">• Handles success/failure flows</text>
+  <text x="240" y="335" class="text-small">• Manages side effects &amp; UI state</text>
+  
+  <!-- Arrow down -->
+  <path d="M 240 345 L 240 375" class="arrow"/>
+  
+  <!-- MoneyGuard SDK -->
+  <rect x="70" y="375" width="340" height="130" rx="5" class="sdk-box"/>
+  <text x="240" y="395" class="title">MoneyGuard SDK (AAR Library)</text>
+  <text x="240" y="420" class="text-small">• getTypingProfile().isEnrolled()</text>
+  <text x="240" y="440" class="text-small">• saveTypingProfileForAuth()</text>
+  <text x="240" y="460" class="text-small">• verifyTypingProfileForAuth()</text>
+  <text x="240" y="480" class="text-small">• startService() / stopService()</text>
+  <text x="240" y="500" class="text-small">• resetService()</text>
+  
+  <!-- Arrow right from SDK to Backend -->
+  <path d="M 410 440 L 480 440" class="arrow-bidirectional"/>
+  <text x="445" y="430" class="text-small" style="font-weight: bold;">HTTPS</text>
+  <text x="445" y="445" class="text-small" style="font-weight: bold;">API Calls</text>
+  
+  <!-- BACKEND SERVICES CONTAINER -->
+  <rect x="480" y="60" width="390" height="480" rx="10" class="backend-box"/>
+  <text x="675" y="85" class="title">BACKEND SERVICES</text>
+  
+  <!-- MoneyGuardService -->
+  <rect x="500" y="120" width="350" height="140" rx="5" class="service-box"/>
+  <text x="675" y="145" class="title">MoneyGuardService (.NET 6 API)</text>
+  <text x="675" y="170" class="text-small">• User enrollment management</text>
+  <text x="675" y="190" class="text-small">• Verification result processing</text>
+  <text x="675" y="210" class="text-small">• Device trust management</text>
+  <text x="675" y="230" class="text-small">• Token &amp; session management</text>
+  <text x="675" y="250" class="text-small">• API gateway to RiskProfilingService</text>
+  
+  <!-- Arrow down -->
+  <path d="M 675 260 L 675 300" class="arrow"/>
+  
+  <!-- RiskProfilingService -->
+  <rect x="500" y="300" width="350" height="150" rx="5" class="service-box"/>
+  <text x="675" y="325" class="title">RiskProfilingService (.NET 6 API)</text>
+  <text x="675" y="350" class="text-small">• Behavioral biometrics analysis engine</text>
+  <text x="675" y="370" class="text-small">• ML model for pattern matching</text>
+  <text x="675" y="390" class="text-small">• Risk scoring and fraud detection</text>
+  <text x="675" y="410" class="text-small">• Enrollment progress tracking</text>
+  <text x="675" y="430" class="text-small">• Third-party integrations</text>
+  
+  <!-- Database -->
+  <rect x="520" y="470" width="130" height="50" rx="5" style="fill: #EEEEEE; stroke: #757575; stroke-width: 2;"/>
+  <text x="585" y="490" class="text-small" style="font-weight: bold;">Database</text>
+  <text x="585" y="505" class="text-small">(Encrypted)</text>
+  
+  <!-- Arrow from RiskProfilingService to Database -->
+  <path d="M 585 450 L 585 470" class="arrow"/>
+  
+  <!-- ML Model -->
+  <rect x="700" y="470" width="130" height="50" rx="5" style="fill: #EEEEEE; stroke: #757575; stroke-width: 2;"/>
+  <text x="765" y="490" class="text-small" style="font-weight: bold;">ML Model</text>
+  <text x="765" y="505" class="text-small">(Pattern Analysis)</text>
+  
+  <!-- Arrow from RiskProfilingService to ML Model -->
+  <path d="M 720 450 L 765 470" class="arrow"/>
+  
+  <!-- Data Flow Legend -->
+  <g transform="translate(50, 570)">
+    <rect x="0" y="0" width="800" height="110" rx="5" style="fill: #F5F5F5; stroke: #9E9E9E; stroke-width: 1;"/>
+    <text x="400" y="20" style="font-size: 14px; font-weight: bold; fill: #333; text-anchor: middle;">Key Data Flows</text>
+    
+    <!-- Enrollment Flow -->
+    <text x="20" y="45" style="font-size: 12px; font-weight: bold; fill: #7B1FA2; text-anchor: start;">1. Enrollment Flow (Non-Blocking):</text>
+    <text x="40" y="62" class="text-small" style="text-anchor: start;">User types username → Typing pattern captured → SDK sends to API → Progress tracked (1/3, 2/3, 3/3) → Toast shown</text>
+    
+    <!-- Verification Flow -->
+    <text x="20" y="82" style="font-size: 12px; font-weight: bold; fill: #388E3C; text-anchor: start;">2. Verification Flow (Blocking on Failure):</text>
+    <text x="40" y="99" class="text-small" style="text-anchor: start;">User types username → Pattern verified via API → ML model compares → Match: Proceed | No Match: Show dialog with bypass</text>
+  </g>
+  
+</svg>
+
+
+

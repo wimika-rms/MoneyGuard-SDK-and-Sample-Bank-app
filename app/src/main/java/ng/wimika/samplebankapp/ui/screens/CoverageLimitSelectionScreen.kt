@@ -38,7 +38,6 @@ fun CoverageLimitSelectionScreen(
     val context = LocalContext.current
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
-    val token = preferenceManager?.getMoneyGuardToken()
     val flowState = MoneyGuardClientApp.accountProtectionFlowState
     
     var coverageLimits by remember { mutableStateOf(flowState?.allCoverageLimits ?: emptyList()) }
@@ -48,10 +47,10 @@ fun CoverageLimitSelectionScreen(
 
     // Load coverage limits when screen is first loaded (only if not already loaded)
     LaunchedEffect(Unit) {
-        if (flowState?.allCoverageLimits?.isEmpty() != false && sdkService != null && !token.isNullOrEmpty()) {
+        if (flowState?.allCoverageLimits?.isEmpty() != false && sdkService != null) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
-                val result = moneyGuardPolicy.getCoverageLimits(token)
+                val result = moneyGuardPolicy.getCoverageLimits()
                 result.fold(
                     onSuccess = { response ->
                         coverageLimits = response.coverageLimits
