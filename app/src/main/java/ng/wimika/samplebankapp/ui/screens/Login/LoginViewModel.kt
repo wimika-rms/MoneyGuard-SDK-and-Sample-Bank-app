@@ -78,7 +78,7 @@ class LoginViewModel(
     private val LOG_TAG = "MONEYGUARD_LOGGER"
 
     private val moneyGuardPrelaunch: MoneyGuardPrelaunch? = sdkService?.prelaunch()
-    private val typingProfileService = sdkService?.getTypingProfile()
+    //private val typingProfileService = sdkService?.getTypingProfile()
 
     init {
         val isLoggedOut = preferenceManager?.getIsLoggedOut() ?: false
@@ -351,108 +351,108 @@ class LoginViewModel(
     }
 
     private fun handleTypingPatternCheck() {
-        viewModelScope.launch {
-            try {
-                val username = _uiState.value.username.trim()
-                val token = preferenceManager?.getMoneyGuardToken()
-
-                if (typingProfileService == null || token.isNullOrEmpty()) {
-                    Log.w(LOG_TAG, "[SampleBankApp|LoginViewModel] Typing profile service or token not available, skipping typing pattern check")
-                    handlePostLoginFlow()
-                    return@launch
-                }
-
-                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Checking if user is enrolled for typing pattern")
-                
-                // Check if user is enrolled
-
-                val isEnrolledResult = typingProfileService.isEnrolled("auth", token)
-                
-                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] isEnrolled result: success=${isEnrolledResult.success}, isEnrolled=${isEnrolledResult.isEnrolled}, message=${isEnrolledResult.message}")
-
-                if (isEnrolledResult.success && isEnrolledResult.isEnrolled) {
-                    // User is enrolled, perform verification
-                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] User is enrolled, performing typing pattern verification")
-                    performTypingPatternVerification(username, token)
-                } else {
-                    // User is not enrolled, perform enrollment
-                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] User is not enrolled, performing typing pattern enrollment")
-                    performTypingPatternEnrollment(username, token)
-                }
-
-                typingProfileService.resetService()
-                typingProfileService.stopService()
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Error during typing pattern check: ${e.message}", e)
-                // Proceed with login flow even if typing pattern check fails
-                handlePostLoginFlow()
-            }
-        }
+//        viewModelScope.launch {
+//            try {
+//                val username = _uiState.value.username.trim()
+//                val token = preferenceManager?.getMoneyGuardToken()
+//
+//                if (typingProfileService == null || token.isNullOrEmpty()) {
+//                    Log.w(LOG_TAG, "[SampleBankApp|LoginViewModel] Typing profile service or token not available, skipping typing pattern check")
+//                    handlePostLoginFlow()
+//                    return@launch
+//                }
+//
+//                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Checking if user is enrolled for typing pattern")
+//
+//                // Check if user is enrolled
+//
+//                val isEnrolledResult = typingProfileService.isEnrolled("auth", token)
+//
+//                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] isEnrolled result: success=${isEnrolledResult.success}, isEnrolled=${isEnrolledResult.isEnrolled}, message=${isEnrolledResult.message}")
+//
+//                if (isEnrolledResult.success && isEnrolledResult.isEnrolled) {
+//                    // User is enrolled, perform verification
+//                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] User is enrolled, performing typing pattern verification")
+//                    performTypingPatternVerification(username, token)
+//                } else {
+//                    // User is not enrolled, perform enrollment
+//                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] User is not enrolled, performing typing pattern enrollment")
+//                    performTypingPatternEnrollment(username, token)
+//                }
+//
+//                typingProfileService.resetService()
+//                typingProfileService.stopService()
+//            } catch (e: Exception) {
+//                Log.e(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Error during typing pattern check: ${e.message}", e)
+//                // Proceed with login flow even if typing pattern check fails
+//                handlePostLoginFlow()
+//            }
+//        }
     }
 
     private fun performTypingPatternEnrollment(username: String, token: String) {
-        viewModelScope.launch {
-            try {
-                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Starting typing pattern enrollment for user: $username")
-                
-                val result = typingProfileService?.saveTypingProfileForAuth(username, token)
-                
-                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Enrollment result: success=${result?.success}, message=${result?.message}, enrollment=${result?.enrollment}")
-
-                if (result?.success == true) {
-                    val enrollmentProgress = result.enrollment ?: 0
-                    val message = when {
-                        enrollmentProgress >= 3 -> "Behavioural Biometrics data enrollment completed! ✓"
-                        else -> "Behavioural Biometrics data captured for enrollment)"
-                    }
-                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] ✓ $message")
-                    _sideEffect.send(LoginSideEffect.ShowToast(message))
-                } else {
-                    Log.w(LOG_TAG, "[SampleBankApp|LoginViewModel] Typing pattern enrollment failed: ${result?.message}")
-                    _sideEffect.send(LoginSideEffect.ShowToast("Behavioral Biometrics capture failed"))
-                }
-                typingProfileService?.resetService()
-                typingProfileService?.stopService()
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Exception during typing pattern enrollment: ${e.message}", e)
-            } finally {
-                // Enrollment is non-blocking, proceed with login flow
-                handlePostLoginFlow()
-            }
-        }
+//        viewModelScope.launch {
+//            try {
+//                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Starting typing pattern enrollment for user: $username")
+//
+//                val result = typingProfileService?.saveTypingProfileForAuth(username, token)
+//
+//                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Enrollment result: success=${result?.success}, message=${result?.message}, enrollment=${result?.enrollment}")
+//
+//                if (result?.success == true) {
+//                    val enrollmentProgress = result.enrollment ?: 0
+//                    val message = when {
+//                        enrollmentProgress >= 3 -> "Behavioural Biometrics data enrollment completed! ✓"
+//                        else -> "Behavioural Biometrics data captured for enrollment)"
+//                    }
+//                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] ✓ $message")
+//                    _sideEffect.send(LoginSideEffect.ShowToast(message))
+//                } else {
+//                    Log.w(LOG_TAG, "[SampleBankApp|LoginViewModel] Typing pattern enrollment failed: ${result?.message}")
+//                    _sideEffect.send(LoginSideEffect.ShowToast("Behavioral Biometrics capture failed"))
+//                }
+//                typingProfileService?.resetService()
+//                typingProfileService?.stopService()
+//            } catch (e: Exception) {
+//                Log.e(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Exception during typing pattern enrollment: ${e.message}", e)
+//            } finally {
+//                // Enrollment is non-blocking, proceed with login flow
+//                handlePostLoginFlow()
+//            }
+//        }
     }
 
     private fun performTypingPatternVerification(username: String, token: String) {
-        viewModelScope.launch {
-            try {
-                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Starting typing pattern verification for user: $username")
-                
-                val result = typingProfileService?.verifyTypingProfileForAuth(username, token)
-                
-                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Verification result: success=${result?.success}, matched=${result?.matched}, message=${result?.message}, asString=${result?.asString}")
-
-                if (result?.success == true && result.matched) {
-                    // Verification successful
-                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] ✓ Typing pattern verification successful")
-                    _sideEffect.send(LoginSideEffect.ShowToast("Behavioral Biometrics verified successfully! ✓"))
-                    handlePostLoginFlow()
-                } else {
-                    // Verification failed - show blocking dialog
-                    val failureMessage = result?.message ?: "Typing pattern did not match"
-                    Log.w(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Typing pattern verification failed: $failureMessage")
-                    _sideEffect.send(LoginSideEffect.ShowTypingVerificationFailedDialog(failureMessage))
-                    _uiState.update { it.copy(isLoading = false) }
-                }
-
-                typingProfileService?.resetService()
-                typingProfileService?.stopService()
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Exception during typing pattern verification: ${e.message}", e)
-                // On exception, show failure dialog
-                _sideEffect.send(LoginSideEffect.ShowTypingVerificationFailedDialog("Error verifying typing pattern: ${e.message}"))
-                _uiState.update { it.copy(isLoading = false) }
-            }
-        }
+//        viewModelScope.launch {
+//            try {
+//                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Starting typing pattern verification for user: $username")
+//
+//                val result = typingProfileService?.verifyTypingProfileForAuth(username, token)
+//
+//                Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] Verification result: success=${result?.success}, matched=${result?.matched}, message=${result?.message}, asString=${result?.asString}")
+//
+//                if (result?.success == true && result.matched) {
+//                    // Verification successful
+//                    Log.i(LOG_TAG, "[SampleBankApp|LoginViewModel] ✓ Typing pattern verification successful")
+//                    _sideEffect.send(LoginSideEffect.ShowToast("Behavioral Biometrics verified successfully! ✓"))
+//                    handlePostLoginFlow()
+//                } else {
+//                    // Verification failed - show blocking dialog
+//                    val failureMessage = result?.message ?: "Typing pattern did not match"
+//                    Log.w(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Typing pattern verification failed: $failureMessage")
+//                    _sideEffect.send(LoginSideEffect.ShowTypingVerificationFailedDialog(failureMessage))
+//                    _uiState.update { it.copy(isLoading = false) }
+//                }
+//
+//                typingProfileService?.resetService()
+//                typingProfileService?.stopService()
+//            } catch (e: Exception) {
+//                Log.e(LOG_TAG, "[SampleBankApp|LoginViewModel] ❌ Exception during typing pattern verification: ${e.message}", e)
+//                // On exception, show failure dialog
+//                _sideEffect.send(LoginSideEffect.ShowTypingVerificationFailedDialog("Error verifying typing pattern: ${e.message}"))
+//                _uiState.update { it.copy(isLoading = false) }
+//            }
+//        }
     }
 
     companion object {
