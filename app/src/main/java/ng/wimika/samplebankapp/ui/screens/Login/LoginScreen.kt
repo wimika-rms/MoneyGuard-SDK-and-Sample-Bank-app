@@ -112,7 +112,7 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     val sdkService = MoneyGuardClientApp.sdkService
-    val typingProfileService = remember { sdkService?.getTypingProfile() }
+    //val typingProfileService = remember { sdkService?.getTypingProfile() }
     
     val uiState by viewModel.uiState.collectAsState()
     var showRiskModal by remember { mutableStateOf(false) }
@@ -128,33 +128,33 @@ fun LoginScreen(
     var permissionCheckTrigger by remember { mutableStateOf(0) }
 
     // --- Overlay Permission Handling ---
-    val settingsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) {
-        Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Returned from overlay settings screen.")
-        permissionCheckTrigger++
-    }
+//    val settingsLauncher = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.StartActivityForResult()
+//    ) {
+//        Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Returned from overlay settings screen.")
+//        permissionCheckTrigger++
+//    }
 
     // Request overlay permission at startup
     LaunchedEffect(usernameEditText, permissionCheckTrigger) {
         if (usernameEditText == null) return@LaunchedEffect
         
-        if (Settings.canDrawOverlays(context)) {
-            try {
-                typingProfileService?.startService(context as Activity, intArrayOf(LOGIN_USERNAME_INPUT_ID))
-                Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Overlay permission granted. Typing service started.")
-            } catch (e: Exception) {
-                Log.e(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Failed to start typing profile service", e)
-            }
-        } else {
-            Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Overlay permission not granted. Requesting user to enable.")
-            Toast.makeText(context, "Overlay permission is required for MoneyGuard features.", Toast.LENGTH_LONG).show()
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${context.packageName}")
-            )
-            settingsLauncher.launch(intent)
-        }
+//        if (Settings.canDrawOverlays(context)) {
+//            try {
+//                //typingProfileService?.startService(context as Activity, intArrayOf(LOGIN_USERNAME_INPUT_ID))
+//                Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Overlay permission granted. Typing service started.")
+//            } catch (e: Exception) {
+//                Log.e(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Failed to start typing profile service", e)
+//            }
+//        } else {
+//            Log.d(LOGIN_LOG_TAG, "[SampleBankApp|LoginScreen] Overlay permission not granted. Requesting user to enable.")
+//            Toast.makeText(context, "Overlay permission is required for MoneyGuard features.", Toast.LENGTH_LONG).show()
+//            val intent = Intent(
+//                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+//                Uri.parse("package:${context.packageName}")
+//            )
+//            settingsLauncher.launch(intent)
+//        }
     }
 
     // --- Side Effect Handling ---
