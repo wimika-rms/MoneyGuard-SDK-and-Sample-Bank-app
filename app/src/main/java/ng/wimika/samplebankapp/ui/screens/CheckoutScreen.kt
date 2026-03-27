@@ -1,5 +1,6 @@
 package ng.wimika.samplebankapp.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -240,22 +241,39 @@ fun CheckoutScreen(
                             isLoading = true
                             try {
                                 val policy = sdkService?.policy()
+                                val paramUserId = userId ?: ""
+                                val paramPartnerId = ng.wimika.samplebankapp.Constants.PARTNER_BANK_ID
+                                val paramPolicyOptionId = flowState?.selectedPolicyOption?.id?.toString() ?: ""
+                                val paramCoveredAccountIds = flowState?.selectedAccountIds?.toList() ?: emptyList()
+                                val paramDebitAccountId = selectedAccount?.id.toString()
+                                val paramAutoRenew = flowState?.autoRenew ?: true
+
+                                Log.d("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] 📤 createPolicy called with: " +
+                                    "userId=$paramUserId, partnerId=$paramPartnerId, " +
+                                    "policyOptionId=$paramPolicyOptionId, coveredAccountIds=$paramCoveredAccountIds, " +
+                                    "debitAccountId=$paramDebitAccountId, autoRenew=$paramAutoRenew")
+
                                 val result = policy?.createPolicy(
-                                    userId = userId ?: "",
-                                    partnerId = ng.wimika.samplebankapp.Constants.PARTNER_BANK_ID,
-                                    policyOptionId = flowState?.selectedPolicyOption?.id?.toString() ?: "",
-                                    coveredAccountIds = flowState?.selectedAccountIds?.toList() ?: emptyList(),
-                                    debitAccountId = selectedAccount?.id.toString(),
-                                    autoRenew = flowState?.autoRenew ?: true
+                                    userId = paramUserId,
+                                    partnerId = paramPartnerId,
+                                    policyOptionId = paramPolicyOptionId,
+                                    coveredAccountIds = paramCoveredAccountIds,
+                                    debitAccountId = paramDebitAccountId,
+                                    autoRenew = paramAutoRenew
                                 )
+
+                                Log.d("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] 📥 createPolicy returned: result=$result")
+
                                 result?.fold(
                                     onSuccess = {
+                                        Log.d("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] ✅ createPolicy SUCCESS")
                                         isSuccess = true
                                         modalTitle = "Congratulations"
                                         modalMessage = "Your transaction was successful!"
                                         showModal = true
                                     },
-                                    onFailure = {
+                                    onFailure = { throwable ->
+                                        Log.e("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] ❌ createPolicy FAILURE: ${throwable.message}", throwable)
                                         isSuccess = false
                                         modalTitle = "Oops"
                                         modalMessage = "Something went wrong. Your transaction has been declined."
@@ -263,6 +281,7 @@ fun CheckoutScreen(
                                     }
                                 )
                             } catch (e: Exception) {
+                                Log.e("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] 💥 createPolicy EXCEPTION: ${e.message}", e)
                                 isSuccess = false
                                 modalTitle = "Oops"
                                 modalMessage = "Something went wrong. Your transaction has been declined."

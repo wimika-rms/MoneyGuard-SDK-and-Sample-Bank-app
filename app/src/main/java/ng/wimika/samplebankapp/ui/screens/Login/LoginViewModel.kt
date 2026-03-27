@@ -331,25 +331,28 @@ class LoginViewModel(
 
                 sdkService?.authentication()?.credentialCheck(token, credential) { result ->
                     Log.d(SDK_TAG, "  ⬅️ RESULT TYPE: ${result.javaClass.simpleName}")
-                    val statusText = if (result is MoneyGuardResult.Success) {
-                        Log.d(SDK_TAG, "  ⬅️ RESULT: status=${result.data.status}")
-                        if (result.data.status == RiskStatus.RISK_STATUS_UNSAFE) {
-                            Log.w(SDK_TAG, "  ⚠️ RESULT: credential is UNSAFE — identity compromised")
-                            preferenceManager?.setIdentityCompromised(true)
-                            preferenceManager?.saveRiskToRegister("identity_compromise")
+                    when (result) {
+                        is MoneyGuardResult.Loading -> {
+                            Log.d(SDK_TAG, "  ⏳ RESULT: credential check loading, waiting...")
+                            return@credentialCheck // Ignore intermediate loading state
                         }
-                        "Credential Check - ${result.data.status}"
-                    }
-                    else {
-                        Log.w(SDK_TAG, "  ⚠️ RESULT: credential check returned non-success: $result")
-                        "Credential Check - Could not determine status"
-                    }
-                    viewModelScope.launch {
-                        _sideEffect.send(
-                            LoginSideEffect.ShowCredentialDialog(
-                                statusText
-                            )
-                        )
+                        is MoneyGuardResult.Success -> {
+                            Log.d(SDK_TAG, "  ⬅️ RESULT: status=${result.data.status}")
+                            if (result.data.status == RiskStatus.RISK_STATUS_UNSAFE) {
+                                Log.w(SDK_TAG, "  ⚠️ RESULT: credential is UNSAFE — identity compromised")
+                                preferenceManager?.setIdentityCompromised(true)
+                                preferenceManager?.saveRiskToRegister("identity_compromise")
+                            }
+                            val statusText = "Credential Check - ${result.data.status}"
+                            viewModelScope.launch {
+                                _sideEffect.send(LoginSideEffect.ShowCredentialDialog(statusText))
+                            }
+                        }
+                        else -> {
+                            // Failure or unexpected result — fail silently and proceed
+                            Log.w(SDK_TAG, "  ⚠️ RESULT: credential check returned non-success: $result — proceeding silently")
+                            viewModelScope.launch { performLocationCheck() }
+                        }
                     }
                 }
             } catch (e: Exception) {
