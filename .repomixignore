@@ -1,0 +1,70 @@
+# repomixignore - Exclude everything but essential source code
+
+# Build artifacts and caches
+.gradle/
+.kotlin/
+build/
+**/build/
+bin/
+obj/
+out/
+app/release/
+
+# IDE and Editor settings
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Dependencies and Binary files
+node_modules/
+vendor/
+libs/
+**/libs/*.jar
+**/libs/*.aar
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Gradle Wrapper
+gradle/
+gradlew
+gradlew.bat
+
+# Android Specific
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.flat
+
+# Media and Large Assets (Optional, but usually not essential code)
+# Only exclude binary images if they are large, but let's be safe and keep XML drawables
+# Exclude common binary image formats to save context space
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.pdf
+*.mp4
+*.mp3
+
+# Git
+.git/
+.gitignore
