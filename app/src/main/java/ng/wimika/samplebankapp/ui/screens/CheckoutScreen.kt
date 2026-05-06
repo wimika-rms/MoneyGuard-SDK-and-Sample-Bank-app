@@ -248,7 +248,7 @@ fun CheckoutScreen(
                                 val paramDebitAccountId = selectedAccount?.id.toString()
                                 val paramAutoRenew = flowState?.autoRenew ?: true
 
-                                Log.d("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] 📤 createPolicy called with: " +
+                                Log.d("MoneyGuardTrace", "[SampleBankApp|CheckoutScreen] 📤 createPolicy called with: " +
                                     "userId=$paramUserId, partnerId=$paramPartnerId, " +
                                     "policyOptionId=$paramPolicyOptionId, coveredAccountIds=$paramCoveredAccountIds, " +
                                     "debitAccountId=$paramDebitAccountId, autoRenew=$paramAutoRenew")
@@ -262,18 +262,18 @@ fun CheckoutScreen(
                                     autoRenew = paramAutoRenew
                                 )
 
-                                Log.d("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] 📥 createPolicy returned: result=$result")
+                                Log.d("MoneyGuardTrace", "[SampleBankApp|CheckoutScreen] 📥 createPolicy returned: result=$result")
 
                                 result?.fold(
                                     onSuccess = {
-                                        Log.d("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] ✅ createPolicy SUCCESS")
+                                        Log.d("MoneyGuardTrace", "[SampleBankApp|CheckoutScreen] ✅ createPolicy SUCCESS")
                                         isSuccess = true
                                         modalTitle = "Congratulations"
                                         modalMessage = "Your transaction was successful!"
                                         showModal = true
                                     },
                                     onFailure = { throwable ->
-                                        Log.e("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] ❌ createPolicy FAILURE: ${throwable.message}", throwable)
+                                        Log.e("MoneyGuardTrace", "[SampleBankApp|CheckoutScreen] ❌ createPolicy FAILURE: ${throwable.message}", throwable)
                                         isSuccess = false
                                         modalTitle = "Oops"
                                         modalMessage = "Something went wrong. Your transaction has been declined."
@@ -281,7 +281,7 @@ fun CheckoutScreen(
                                     }
                                 )
                             } catch (e: Exception) {
-                                Log.e("MG_CHECKOUT", "[SampleBankApp|CheckoutScreen] 💥 createPolicy EXCEPTION: ${e.message}", e)
+                                Log.e("MoneyGuardTrace", "[SampleBankApp|CheckoutScreen] 💥 createPolicy EXCEPTION: ${e.message}", e)
                                 isSuccess = false
                                 modalTitle = "Oops"
                                 modalMessage = "Something went wrong. Your transaction has been declined."

@@ -1,6 +1,6 @@
 # MoneyGuard Partner Lite SDK for Android
 
-The MoneyGuard Partner Lite SDK is an Android library that enables seamless integration of MoneyGuard protection directly into your bank's Android application. This SDK operates as a secure gateway—handling telemetry, continuous authentication, risk assessment, and real-time transaction security—while handing off complex insurance management tasks to the standalone MoneyGuard application.
+The MoneyGuard Partner Lite SDK is an Android library that enables seamless integration of MoneyGuard protection directly into your bank's Android application. This SDK operates as a secure gateway—handling telemetry, continuous authentication, risk assessment, and real-time transaction security—while handing off security awareness training and complex claims management tasks to the standalone MoneyGuard application.
 
 To accelerate your integration, this repository includes a fully functional **Sample Bank App** (built with Jetpack Compose) demonstrating every SDK feature in practice.
 

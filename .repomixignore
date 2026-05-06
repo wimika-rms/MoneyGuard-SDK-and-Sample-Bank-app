@@ -68,3 +68,6 @@ captures/
 # Git
 .git/
 .gitignore
+
+*.md
+!AGENTS.md
