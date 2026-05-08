@@ -20,7 +20,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -86,8 +89,10 @@ fun CheckDebitScreen(
     
     var amount by remember { mutableStateOf("") }
     var sourceAccountNumber by remember { mutableStateOf("") }
+    var sourceAccountExpanded by remember { mutableStateOf(false) }
     var destinationAccountNumber by remember { mutableStateOf("") }
     var destinationBank by remember { mutableStateOf("") }
+    var destinationBankExpanded by remember { mutableStateOf(false) }
     var memo by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     
@@ -308,8 +313,8 @@ fun CheckDebitScreen(
             else -> {
                 isLoading = false
                 showAlert = true
-                alertTitle = "Transaction Safe"
-                alertMessage = "Your transaction has been verified as safe."
+                alertTitle = "Transfer Successful ✅"
+                alertMessage = "Your transfer has been completed successfully."
                 alertButtonText = "OK"
                 showSecondaryButton = false
                 alertConfirmAction = { showAlert = false }
@@ -395,7 +400,7 @@ fun CheckDebitScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Check Debit Transaction",
+                        text = "Make Transfer",
                         style = MaterialTheme.typography.titleLarge,
                     )
                 },
@@ -435,19 +440,42 @@ fun CheckDebitScreen(
                     label = { Text("Amount") },
                 )
 
-                OutlinedTextField(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                        .testTag("check_debit_source_account_input"),
-                    value = sourceAccountNumber,
-                    onValueChange = { sourceAccountNumber = it },
-                    label = { Text("Source Account Number") },
-                )
+                ExposedDropdownMenuBox(
+                    expanded = sourceAccountExpanded,
+                    onExpandedChange = { sourceAccountExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .menuAnchor()
+                            .testTag("check_debit_source_account_input"),
+                        readOnly = true,
+                        value = sourceAccountNumber,
+                        onValueChange = { },
+                        label = { Text("Source Account Number") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = sourceAccountExpanded) }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = sourceAccountExpanded,
+                        onDismissRequest = { sourceAccountExpanded = false }
+                    ) {
+                        listOf("0123456789", "9876543210").forEach { account ->
+                            DropdownMenuItem(
+                                text = { Text(account) },
+                                onClick = {
+                                    sourceAccountNumber = account
+                                    sourceAccountExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 OutlinedTextField(
                     value = destinationAccountNumber,
                     onValueChange = { destinationAccountNumber = it },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     label = { Text(text = "Destination Account Number") },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -455,15 +483,37 @@ fun CheckDebitScreen(
                         .testTag("check_debit_destination_account_input")
                 )
 
-                OutlinedTextField(
-                    value = destinationBank,
-                    onValueChange = { destinationBank = it },
-                    label = { Text("Destination Bank") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                        .testTag("check_debit_destination_bank_input")
-                )
+                ExposedDropdownMenuBox(
+                    expanded = destinationBankExpanded,
+                    onExpandedChange = { destinationBankExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .menuAnchor()
+                            .testTag("check_debit_destination_bank_input"),
+                        readOnly = true,
+                        value = destinationBank,
+                        onValueChange = { },
+                        label = { Text("Destination Bank") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = destinationBankExpanded) }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = destinationBankExpanded,
+                        onDismissRequest = { destinationBankExpanded = false }
+                    ) {
+                        listOf("GTB", "Wema", "Opay", "Zenith Bank", "First Bank", "UBA", "Access Bank").forEach { bank ->
+                            DropdownMenuItem(
+                                text = { Text(bank) },
+                                onClick = {
+                                    destinationBank = bank
+                                    destinationBankExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 OutlinedTextField(
                     value = memo,
@@ -495,7 +545,7 @@ fun CheckDebitScreen(
                             color = Color(0xFFF97316)
                         )
                     } else {
-                        Text("Check Debit Transaction")
+                        Text("Transfer")
                     }
                 }
 

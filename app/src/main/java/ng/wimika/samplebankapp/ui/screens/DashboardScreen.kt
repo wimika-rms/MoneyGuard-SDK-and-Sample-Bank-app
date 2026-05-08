@@ -299,7 +299,7 @@ private fun ActionsGrid(onCheckDebitClick: () -> Unit = {},
             // Fixed icons to use core material library
 
             ActionCard(
-                icon = Icons.Default.StarBorder,
+                icon = Icons.Default.SwapHoriz,
                 text = "Make\nTransfer",
                 modifier = Modifier.weight(1f),
                 onClick = onCheckDebitClick,
