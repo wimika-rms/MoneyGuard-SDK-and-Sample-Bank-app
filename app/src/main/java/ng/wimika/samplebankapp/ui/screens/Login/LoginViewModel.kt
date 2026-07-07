@@ -76,7 +76,7 @@ class LoginViewModel(
     private val _sideEffect = Channel<LoginSideEffect>()
     val sideEffect = _sideEffect.receiveAsFlow()
     private val LOG_TAG = "MONEYGUARD_LOGGER"
-    private val SDK_TAG = "MoneyGuardTrace"
+    private val SDK_TAG = "MG_SDK_TRACE"
 
     private val moneyGuardPrelaunch: MoneyGuardPrelaunch? = sdkService?.prelaunch()
     //private val typingProfileService = sdkService?.getTypingProfile()
