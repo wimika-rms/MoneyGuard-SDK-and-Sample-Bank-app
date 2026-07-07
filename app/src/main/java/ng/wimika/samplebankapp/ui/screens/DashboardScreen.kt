@@ -86,7 +86,6 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 AccountCard()
                 // Risk Score Card - only show when MoneyGuard is Active
-                moneyguardStatus == MoneyGuardAppStatus.ValidPolicyAppNotInstalled
                 if (moneyguardStatus == MoneyGuardAppStatus.Active) {
                     RiskScoreCard()
                 }
@@ -165,10 +164,8 @@ private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardApp
                     || moneyGuardAppStatus == MoneyGuardAppStatus.CancelledPolicyAppInstalled
                     )
                 {
-                    MoneyGuardClientApp.sdkService?.utility()?.launchMoneyGuardApp();
+                    MoneyGuardClientApp.sdkService?.utility()?.launchMoneyGuardApp()
                 }
-
-                // TODO: Handle "Launch MoneyGuard" action when protected
             },
             modifier = Modifier.testTag("dashboard_protect_account_button"),
             shape = RoundedCornerShape(50),
@@ -179,8 +176,7 @@ private fun DashboardHeader(userName: String, moneyGuardAppStatus: MoneyGuardApp
                 Text(
                     text = if (moneyGuardAppStatus == MoneyGuardAppStatus.Active
                         || moneyGuardAppStatus == MoneyGuardAppStatus.ExpiredPolicyPolicyAppInstalled
-                        || moneyGuardAppStatus == MoneyGuardAppStatus.CancelledPolicyAppInstalled
-                        || moneyGuardAppStatus == MoneyGuardAppStatus.ExpiredPolicyPolicyAppInstalled)
+                        || moneyGuardAppStatus == MoneyGuardAppStatus.CancelledPolicyAppInstalled)
                     {
                         "Launch MoneyGuard"
                     } else {
