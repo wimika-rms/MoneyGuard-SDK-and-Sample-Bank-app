@@ -378,14 +378,22 @@ fun ClaimsListScreen(
 @Composable
 fun ClaimsSummaryCard(claims: List<ClaimResponse>) {
     val totalClaims = claims.size
-    val totalAmount = claims.sumOf { it.lossAmount }
-    val pendingClaims = claims.count { 
-        val status = it.status.toClaimStatus()
-        status == ClaimStatus.Submitted || status == ClaimStatus.UnderReview
-    }
-    val approvedClaims = claims.count { 
-        val status = it.status.toClaimStatus()
-        status == ClaimStatus.Verified || status == ClaimStatus.PaymentSent || status == ClaimStatus.ReimbursementComplete
+    var totalAmount = 0.0
+    var pendingClaims = 0
+    var approvedClaims = 0
+
+    claims.forEach { claim ->
+        totalAmount += claim.lossAmount
+        val status = claim.status.toClaimStatus()
+        when (status) {
+            ClaimStatus.Submitted, ClaimStatus.UnderReview -> {
+                pendingClaims++
+            }
+            ClaimStatus.Verified, ClaimStatus.PaymentSent, ClaimStatus.ReimbursementComplete -> {
+                approvedClaims++
+            }
+            else -> { /* Other statuses don't contribute to these counts */ }
+        }
     }
 
     Card(
