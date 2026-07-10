@@ -248,7 +248,7 @@ class LoginViewModel(
             when (finalResult) {
                 is MoneyGuardResult.Success -> {
                     val response = finalResult.data
-                    Log.d(SDK_TAG, "  ⬅️ RESULT: token=${if (response.token.isNotEmpty()) "${response.token.take(12)}..." else "(empty)"}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: hasToken=${response.token.isNotEmpty()}, tokenLength=${response.token.length}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: installationId=${response.installationId}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: firstName=${response.userDetails.firstName}, lastName=${response.userDetails.lastName}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: highRiskThreshold=${response.highRiskThreshold}")
@@ -261,7 +261,7 @@ class LoginViewModel(
                     }
                     if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
                         Log.d(SDK_TAG, "━━━ utility().checkMoneyguardPolicyStatus() [inside register] ━━━")
-                        Log.d(SDK_TAG, "  ➡️ PARAMS: token=${response.token.take(12)}...")
+                        Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${response.token.isNotEmpty()}, tokenLength=${response.token.length}")
                         val policyStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(response.token)
                         Log.d(SDK_TAG, "  ⬅️ RESULT: policyStatus=$policyStatus")
                         if (policyStatus == MoneyGuardAppStatus.Active) {
@@ -298,7 +298,7 @@ class LoginViewModel(
             }
 
             Log.d(SDK_TAG, "━━━ utility().checkMoneyguardPolicyStatus() [post-login] ━━━")
-            Log.d(SDK_TAG, "  ➡️ PARAMS: token=${token.take(12)}...")
+            Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
             val status = sdkService.utility()?.checkMoneyguardPolicyStatus(token)
             Log.d(SDK_TAG, "  ⬅️ RESULT: policyStatus=$status")
             if (status == MoneyGuardAppStatus.Active) {
@@ -324,10 +324,7 @@ class LoginViewModel(
 
                 Log.d(SDK_TAG, "━━━ authentication().credentialCheck() ━━━")
                 Log.d(SDK_TAG, "  ➡️ PARAMS: token=${token.take(12)}...")
-                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.username=${credential.username}")
-                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.domain=${credential.domain}")
-                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.hashAlgorithm=${credential.hashAlgorithm}")
-                Log.d(SDK_TAG, "  ➡️ PARAMS: credential.passwordHash=${hashedPasswordLast3.take(12)}...")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: credential check requested, hasUsername=${credential.username.isNotBlank()}, hasDomain=${credential.domain.isNotBlank()}, hashAlgorithm=${credential.hashAlgorithm}")
 
                 sdkService?.authentication()?.credentialCheck(token, credential) { result ->
                     Log.d(SDK_TAG, "  ⬅️ RESULT TYPE: ${result.javaClass.simpleName}")

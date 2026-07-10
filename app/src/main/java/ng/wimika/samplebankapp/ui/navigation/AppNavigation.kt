@@ -154,13 +154,14 @@ fun AppNavigation() {
             preferenceManager?.saveMoneyguardUserNames("", "")
             Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Cleared all stored user data")
             
-            // Call SDK logout asynchronously
-//            try {
-//                sdkService?.authentication()?.logout()
-//                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Called SDK logout")
-//            } catch (e: Exception) {
-//                Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Error during SDK logout: ${e.message}")
-//            }
+            // Call SDK logout asynchronously so the standalone Core service clears
+            // its own encrypted credentials as well.
+            try {
+                sdkService?.authentication()?.logout()
+                Log.d("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Requested SDK logout")
+            } catch (e: Exception) {
+                Log.e("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] Error requesting SDK logout", e)
+            }
         }
         
         Log.i("MONEYGUARD_LOGGER", "[SampleBankApp|AppNavigation] ✅ User logout completed - Returning to login screen")
@@ -398,4 +399,4 @@ fun AppNavigation() {
             dismissButton = null
         )
     }
-} 
+}

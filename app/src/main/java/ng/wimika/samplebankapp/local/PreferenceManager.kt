@@ -3,6 +3,8 @@ package ng.wimika.samplebankapp.local
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import com.google.gson.Gson
 
 class PreferenceManager(private val context: Context): IPreferenceManager {
@@ -52,7 +54,13 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
-        context.getSharedPreferences("moneyguard.client.preference", Context.MODE_PRIVATE)
+        EncryptedSharedPreferences.create(
+            "moneyguard.client.preference.secure",
+            MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
+            context.applicationContext,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
     }
     
     private val gson = Gson()
