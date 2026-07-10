@@ -226,7 +226,7 @@ fun TypingPatternVerificationScreen(
                         addDebugLog("Starting typing pattern verification")
                         try {
                             val token = preferenceManager?.getMoneyGuardToken()
-                            Log.d(VERIFY_LOG_TAG, "[SampleBankApp|TypingPatternVerificationScreen] Token: ${token}")
+                            Log.d(VERIFY_LOG_TAG, "[SampleBankApp|TypingPatternVerificationScreen] hasToken=${!token.isNullOrEmpty()} tokenLength=${token?.length ?: 0}")
                             if (typingProfileService == null || token.isNullOrEmpty()) {
 
                                 addDebugLog("Error: SDK not initialized.")

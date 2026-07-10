@@ -94,7 +94,7 @@ fun AppNavigation() {
                     )
                     
                     Log.d("MG_SDK_TRACE", "━━━ authentication().trustDevice() ━━━")
-                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: token=${token.take(12)}...")
+                    Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
                     Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: deviceId=${deviceId}")
                     Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: userId=${trustedDeviceRequest.userId}")
                     Log.d("MG_SDK_TRACE", "  ➡️ PARAMS: installationId=${trustedDeviceRequest.installationId}")

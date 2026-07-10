@@ -50,7 +50,7 @@ fun DashboardScreen(
             if(token != null)
             {
                 Log.d("MoneyGuardTrace", "━━━ utility().checkMoneyguardPolicyStatus() [Dashboard] ━━━")
-                Log.d("MoneyGuardTrace", "  ➡️ PARAMS: token=${token.take(12)}...")
+                Log.d("MoneyGuardTrace", "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
                 moneyguardStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(token)
                 Log.d("MoneyGuardTrace", "  ⬅️ RESULT: policyStatus=$moneyguardStatus")
             }

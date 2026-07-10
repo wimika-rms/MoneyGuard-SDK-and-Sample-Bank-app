@@ -220,6 +220,9 @@ class LoginViewModel(
                     _sideEffect.send(LoginSideEffect.ShowUntrustedDeviceDialog)
                     return@launch
                 }
+                if (registrationResult == RegistrationResult.DEGRADED) {
+                    _sideEffect.send(LoginSideEffect.ShowToast("MoneyGuard protection is temporarily unavailable. Your bank login will continue."))
+                }
 
                 // Step 3.5: Typing Pattern Check (Enrollment or Verification)
                 //handleTypingPatternCheck()
@@ -236,7 +239,7 @@ class LoginViewModel(
     private suspend fun registerWithMoneyGuard(sessionId: String): RegistrationResult {
         return try {
             Log.d(SDK_TAG, "━━━ authentication().register() ━━━")
-            Log.d(SDK_TAG, "  ➡️ PARAMS: partnerBankId=${Constants.PARTNER_BANK_ID}, partnerSessionToken=${sessionId.take(8)}...")
+            Log.d(SDK_TAG, "  ➡️ PARAMS: partnerBankId=${Constants.PARTNER_BANK_ID}, hasPartnerSessionToken=${sessionId.isNotEmpty()}, partnerSessionTokenLength=${sessionId.length}")
             val resultFlow = sdkService?.authentication()?.register(
                 parteBankId = Constants.PARTNER_BANK_ID,
                 partnerSessionToken = sessionId
@@ -253,6 +256,7 @@ class LoginViewModel(
                     Log.d(SDK_TAG, "  ⬅️ RESULT: firstName=${response.userDetails.firstName}, lastName=${response.userDetails.lastName}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: highRiskThreshold=${response.highRiskThreshold}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: sessionResultFlag=${response.result}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: hostSyncStatus=${response.hostSyncStatus}")
                     if (response.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(response.token)
                         preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
@@ -260,31 +264,23 @@ class LoginViewModel(
                         preferenceManager?.saveHighRiskThreshold(response.highRiskThreshold)
                     }
                     if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
-                        Log.d(SDK_TAG, "━━━ utility().checkMoneyguardPolicyStatus() [inside register] ━━━")
-                        Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${response.token.isNotEmpty()}, tokenLength=${response.token.length}")
-                        val policyStatus = sdkService?.utility()?.checkMoneyguardPolicyStatus(response.token)
-                        Log.d(SDK_TAG, "  ⬅️ RESULT: policyStatus=$policyStatus")
-                        if (policyStatus == MoneyGuardAppStatus.Active) {
-                            RegistrationResult.NEEDS_VERIFICATION
-                        } else {
-                            RegistrationResult.SUCCESS
-                        }
+                        RegistrationResult.NEEDS_VERIFICATION
                     } else {
-                        RegistrationResult.SUCCESS
+                        if (response.hostSyncStatus.name == "HOST_UNAVAILABLE") RegistrationResult.DEGRADED else RegistrationResult.SUCCESS
                     }
                 }
                 is MoneyGuardResult.Failure -> {
                     Log.e(SDK_TAG, "  ❌ RESULT: registration failed: ${finalResult.error.message}")
-                    RegistrationResult.SUCCESS // Fail open: proceed even if registration fails
+                    RegistrationResult.DEGRADED
                 }
                 else -> {
                     Log.w(SDK_TAG, "  ⚠️ RESULT: unexpected result type: $finalResult")
-                    RegistrationResult.SUCCESS // Fail open
+                    RegistrationResult.DEGRADED
                 }
             }
         } catch (e: Exception) {
             Log.e(SDK_TAG, "  ❌ authentication().register() EXCEPTION: ${e.message}", e)
-            RegistrationResult.SUCCESS // Fail open
+            RegistrationResult.DEGRADED
         }
     }
 
@@ -323,7 +319,7 @@ class LoginViewModel(
                 )
 
                 Log.d(SDK_TAG, "━━━ authentication().credentialCheck() ━━━")
-                Log.d(SDK_TAG, "  ➡️ PARAMS: token=${token.take(12)}...")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
                 Log.d(SDK_TAG, "  ➡️ PARAMS: credential check requested, hasUsername=${credential.username.isNotBlank()}, hasDomain=${credential.domain.isNotBlank()}, hashAlgorithm=${credential.hashAlgorithm}")
 
                 sdkService?.authentication()?.credentialCheck(token, credential) { result ->
@@ -369,7 +365,7 @@ class LoginViewModel(
 
             try {
                 Log.d(SDK_TAG, "━━━ utility().checkLocation() ━━━")
-                Log.d(SDK_TAG, "  ➡️ PARAMS: token=${token.take(12)}...")
+                Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
                 val response = sdkService?.utility()?.checkLocation(token)
 
                 Log.d(SDK_TAG, "  ⬅️ RESULT: response=${response}")
@@ -588,5 +584,6 @@ class LoginViewModel(
 
 private enum class RegistrationResult {
     SUCCESS,
+    DEGRADED,
     NEEDS_VERIFICATION
 }
