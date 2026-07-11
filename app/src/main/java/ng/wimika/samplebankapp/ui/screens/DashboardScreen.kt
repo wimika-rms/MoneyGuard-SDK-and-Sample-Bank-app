@@ -435,12 +435,12 @@ private fun RiskScoreCard() {
                        // break // Exit the loop once we get a valid score
                     }
                     
-                    // Wait 3 seconds before next check
-                    kotlinx.coroutines.delay(3000)
+                    // Wait 15 seconds before next check
+                    kotlinx.coroutines.delay(15000)
                 } catch (e: Exception) {
-                    // On error, wait 3 seconds before retrying
+                    // On error, wait 15 seconds before retrying
                     Log.e("RiskProfile", "Error fetching risk score: ${e.toString()}")
-                    kotlinx.coroutines.delay(3000)
+                    kotlinx.coroutines.delay(15000)
                 }
             }
         } else {

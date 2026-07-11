@@ -293,16 +293,8 @@ class LoginViewModel(
                 return@launch
             }
 
-            Log.d(SDK_TAG, "━━━ utility().checkMoneyguardPolicyStatus() [post-login] ━━━")
-            Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
-            val status = sdkService.utility()?.checkMoneyguardPolicyStatus(token)
-            Log.d(SDK_TAG, "  ⬅️ RESULT: policyStatus=$status")
-            if (status == MoneyGuardAppStatus.Active) {
-                performCredentialCheck(token)
-            } else {
-                Log.d(SDK_TAG, "  ➡️ Policy not active, skipping credential/location checks → Dashboard")
-                _sideEffect.send(LoginSideEffect.NavigateToDashboard)
-            }
+            Log.d(SDK_TAG, "━━━ handlePostLoginFlow: directly performing credential check ━━━")
+            performCredentialCheck(token)
         }
     }
 
