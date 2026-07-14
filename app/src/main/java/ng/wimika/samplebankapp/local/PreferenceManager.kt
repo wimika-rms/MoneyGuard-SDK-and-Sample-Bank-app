@@ -54,13 +54,41 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
-        EncryptedSharedPreferences.create(
+        val encrypted = EncryptedSharedPreferences.create(
             "moneyguard.client.preference.secure",
             MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
             context.applicationContext,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+        migrateAndDeleteLegacyPreferences(encrypted)
+        encrypted
+    }
+
+    private fun migrateAndDeleteLegacyPreferences(encrypted: SharedPreferences) {
+        val legacyName = "moneyguard.client.preference"
+        val legacy = context.getSharedPreferences(legacyName, Context.MODE_PRIVATE)
+        if (legacy.all.isEmpty()) {
+            context.deleteSharedPreferences(legacyName)
+            return
+        }
+
+        val editor = encrypted.edit()
+        legacy.all.forEach { (key, value) ->
+            if (encrypted.contains(key)) return@forEach
+            when (value) {
+                is String -> editor.putString(key, value)
+                is Int -> editor.putInt(key, value)
+                is Boolean -> editor.putBoolean(key, value)
+                is Float -> editor.putFloat(key, value)
+                is Long -> editor.putLong(key, value)
+                is Set<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+            }
+        }
+        if (editor.commit()) {
+            legacy.edit().clear().commit()
+            context.deleteSharedPreferences(legacyName)
+        }
     }
     
     private val gson = Gson()
@@ -244,12 +272,9 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         val valueToPreserve = sharedPreferences.getBoolean(LOGGED_OUT, false)
 
 // 2. Clear all preferences and then put the saved value back
-        sharedPreferences.edit().clear().apply {
-            // Only put the value back if it existed
-            if (valueToPreserve != null) {
-                putBoolean(LOGGED_OUT, valueToPreserve)
-            }
-        }.apply()
+        sharedPreferences.edit().clear()
+            .putBoolean(LOGGED_OUT, valueToPreserve)
+            .apply()
         //sharedPreferences.edit().clear().commit()
     }
 

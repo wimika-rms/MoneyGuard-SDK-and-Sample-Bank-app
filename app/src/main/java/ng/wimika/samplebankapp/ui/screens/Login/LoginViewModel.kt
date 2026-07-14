@@ -223,6 +223,9 @@ class LoginViewModel(
                 if (registrationResult == RegistrationResult.DEGRADED) {
                     _sideEffect.send(LoginSideEffect.ShowToast("MoneyGuard protection is temporarily unavailable. Your bank login will continue."))
                 }
+                if (registrationResult == RegistrationResult.SECURITY_REJECTED) {
+                    _sideEffect.send(LoginSideEffect.ShowToast("MoneyGuard could not verify this bank integration. Your bank login will continue without MoneyGuard protection."))
+                }
 
                 // Step 3.5: Typing Pattern Check (Enrollment or Verification)
                 //handleTypingPatternCheck()
@@ -252,8 +255,8 @@ class LoginViewModel(
                 is MoneyGuardResult.Success -> {
                     val response = finalResult.data
                     Log.d(SDK_TAG, "  ⬅️ RESULT: hasToken=${response.token.isNotEmpty()}, tokenLength=${response.token.length}")
-                    Log.d(SDK_TAG, "  ⬅️ RESULT: installationId=${response.installationId}")
-                    Log.d(SDK_TAG, "  ⬅️ RESULT: firstName=${response.userDetails.firstName}, lastName=${response.userDetails.lastName}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: installationIdPrefix=${response.installationId?.take(8) ?: "none"}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: hasUserNames=${response.userDetails.firstName.isNotBlank() || response.userDetails.lastName.isNotBlank()}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: highRiskThreshold=${response.highRiskThreshold}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: sessionResultFlag=${response.result}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: hostSyncStatus=${response.hostSyncStatus}")
@@ -271,7 +274,11 @@ class LoginViewModel(
                 }
                 is MoneyGuardResult.Failure -> {
                     Log.e(SDK_TAG, "  ❌ RESULT: registration failed: ${finalResult.error.message}")
-                    RegistrationResult.DEGRADED
+                    if (finalResult.error is SecurityException) {
+                        RegistrationResult.SECURITY_REJECTED
+                    } else {
+                        RegistrationResult.DEGRADED
+                    }
                 }
                 else -> {
                     Log.w(SDK_TAG, "  ⚠️ RESULT: unexpected result type: $finalResult")
@@ -577,5 +584,6 @@ class LoginViewModel(
 private enum class RegistrationResult {
     SUCCESS,
     DEGRADED,
+    SECURITY_REJECTED,
     NEEDS_VERIFICATION
 }
