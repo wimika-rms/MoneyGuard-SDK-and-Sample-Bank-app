@@ -15,6 +15,7 @@ import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
 import ng.wimika.moneyguard_sdk_commons.types.RiskStatus
 import ng.wimika.moneyguard_sdk_commons.types.SessionResultFlags
 import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
+import ng.wimika.samplebankapp.BuildConfig
 import ng.wimika.samplebankapp.Constants
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.local.IPreferenceManager
@@ -180,7 +181,7 @@ class LoginViewModel(
                 val loginResponse = loginRepository.login(
                      email = currentState.username.trim(),
                     password = currentState.password,
-                    appVersion = Constants.APP_VERSION,
+                    appVersion = BuildConfig.VERSION_NAME,
                     deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
                     androidVersion = Build.VERSION.RELEASE
                 ).first() // Assuming collect is not needed and we just want the first emission

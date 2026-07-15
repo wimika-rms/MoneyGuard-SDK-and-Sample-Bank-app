@@ -19,8 +19,7 @@ data class SubmitClaimState(
     val isLoading: Boolean = false,
     val isSuccessful: Boolean = false,
     val errorMessage: String? = null,
-    val showDatePicker: Boolean = false,
-    val showPermissionRationale: Boolean = false
+    val showDatePicker: Boolean = false
 ) {
     val shouldEnableButton: Boolean
         get() = selectedAccount != null &&
@@ -40,8 +39,6 @@ sealed class SubmitClaimEvent {
     data class OnFilesSelected(val uris: List<Uri>) : SubmitClaimEvent()
     object ShowDatePicker : SubmitClaimEvent()
     object HideDatePicker : SubmitClaimEvent()
-    object ShowPermissionRationale : SubmitClaimEvent()
-    object HidePermissionRationale : SubmitClaimEvent()
     object SubmitClaim : SubmitClaimEvent()
 }
 
@@ -63,4 +60,4 @@ data class ClaimsDetailsState(
     val claim: ClaimResponse? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
-) 
+)

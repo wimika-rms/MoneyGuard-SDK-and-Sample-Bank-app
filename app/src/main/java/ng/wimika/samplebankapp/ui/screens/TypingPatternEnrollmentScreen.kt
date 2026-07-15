@@ -39,7 +39,7 @@ import kotlinx.coroutines.launch
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.ui.screens.ConsoleDialog
 import ng.wimika.samplebankapp.loginRepo.ShareLogsRepositoryImpl
-import ng.wimika.samplebankapp.Constants
+import ng.wimika.samplebankapp.BuildConfig
 import android.os.Build
 
 private const val LOG_TAG = "typing-pattern-enroll"
@@ -95,7 +95,7 @@ fun TypingPatternScreen(
                 val androidVersion = Build.VERSION.RELEASE
                 val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
                 val logContent = debugLogs.joinToString("\n")
-                val appVersion = Constants.APP_VERSION
+                val appVersion = BuildConfig.VERSION_NAME
 
                 val shareLogsRepository = ShareLogsRepositoryImpl()
                 shareLogsRepository.shareLogs(

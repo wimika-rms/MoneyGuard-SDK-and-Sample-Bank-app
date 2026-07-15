@@ -1,10 +1,7 @@
 package ng.wimika.samplebankapp.ui.screens.claims
 
-import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,7 +35,6 @@ import coil.request.ImageRequest
 import ng.wimika.samplebankapp.R
 import ng.wimika.samplebankapp.utils.DateUtils
 import ng.wimika.samplebankapp.utils.FileUtils
-import ng.wimika.samplebankapp.utils.PermissionUtils
 import ng.wimika.samplebankapp.ui.theme.SabiBankColors
 import java.util.Date
 import ng.wimika.samplebankapp.MoneyGuardClientApp
@@ -60,7 +56,9 @@ private class FileRequestBody(
     override fun contentType() = mimeType.toMediaTypeOrNull()
     override fun contentLength() = -1L
     override fun writeTo(sink: BufferedSink) {
-        sink.writeAll(inputStream.source())
+        inputStream.use { stream ->
+            sink.writeAll(stream.source())
+        }
     }
 }
 
@@ -77,7 +75,7 @@ private fun convertToMultipartBodyParts(context: Context, files: List<Uri>): Lis
 
             MultipartBody.Part.createFormData("attachments", fileName, requestBody)
         } catch (e: Exception) {
-            Log.e("SubmitClaimScreen", "Error creating MultipartBody.Part for URI: $uri", e)
+            Log.e("SubmitClaimScreen", "Unable to prepare a selected claim attachment", e)
             null
         }
     }
@@ -89,7 +87,6 @@ fun SubmitClaimScreen(
     onBackPressed: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
 
     // Get SDK services
     val moneyGuardClaim = MoneyGuardClientApp.sdkService?.claim()
@@ -177,12 +174,6 @@ fun SubmitClaimScreen(
             SubmitClaimEvent.HideDatePicker -> {
                 state = state.copy(showDatePicker = false)
             }
-            SubmitClaimEvent.ShowPermissionRationale -> {
-                state = state.copy(showPermissionRationale = true)
-            }
-            SubmitClaimEvent.HidePermissionRationale -> {
-                state = state.copy(showPermissionRationale = false)
-            }
             SubmitClaimEvent.SubmitClaim -> {
                 state = state.copy(isLoading = true, errorMessage = null)
                 
@@ -229,31 +220,10 @@ fun SubmitClaimScreen(
         }
     }
 
-    val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        arrayOf(
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_MEDIA_AUDIO
-        )
-    } else {
-        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-    }
-
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         onEvent(SubmitClaimEvent.OnFilesSelected(uris))
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissionsMap ->
-        val allGranted = permissionsMap.values.all { it }
-        if (allGranted) {
-            filePickerLauncher.launch("*/*")
-        } else {
-            onEvent(SubmitClaimEvent.ShowPermissionRationale)
-        }
     }
 
     if (state.isSuccessful) {
@@ -270,31 +240,6 @@ fun SubmitClaimScreen(
             // Clear error after showing
             state = state.copy(errorMessage = null)
         }
-    }
-
-    if (state.showPermissionRationale) {
-        AlertDialog(
-            onDismissRequest = { onEvent(SubmitClaimEvent.HidePermissionRationale) },
-            title = { Text("Permission Required") },
-            text = { Text("Storage permission is required to select files for your claim.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onEvent(SubmitClaimEvent.HidePermissionRationale)
-                        activity?.let {
-                            PermissionUtils.requestPermissions(it, permissions, 100)
-                        }
-                    }
-                ) {
-                    Text("Grant Permission")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onEvent(SubmitClaimEvent.HidePermissionRationale) }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 
     if (state.showDatePicker) {
@@ -518,11 +463,7 @@ fun SubmitClaimScreen(
 
                     Button(
                         onClick = {
-                            if (PermissionUtils.arePermissionsGranted(context, permissions)) {
-                                filePickerLauncher.launch("*/*")
-                            } else {
-                                permissionLauncher.launch(permissions)
-                            }
+                            filePickerLauncher.launch("*/*")
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -679,4 +620,4 @@ fun SubmitClaimScreen(
             }
         }
     }
-} 
+}

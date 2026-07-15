@@ -1,4 +1,19 @@
 # Add project specific ProGuard rules here.
+
+# Release builds must not retain app or embedded-SDK log calls. This removes
+# sensitive diagnostic arguments as well as the calls themselves.
+-assumenosideeffects class android.util.Log {
+    public static *** v(...);
+    public static *** d(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+    public static *** wtf(...);
+}
+
+# Joda-Time references these optional conversion annotations only as metadata.
+-dontwarn org.joda.convert.FromString
+-dontwarn org.joda.convert.ToString
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 #

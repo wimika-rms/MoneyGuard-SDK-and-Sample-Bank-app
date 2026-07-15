@@ -54,7 +54,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import ng.wimika.moneyguard_sdk.services.in_app_content.models.InAppContentResponse
 import ng.wimika.samplebankapp.R
 import ng.wimika.samplebankapp.ui.theme.SabiBankColors
-import ng.wimika.samplebankapp.Constants
+import ng.wimika.samplebankapp.BuildConfig
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.samplebankapp.ui.screens.BottomSheetModal
@@ -280,7 +280,7 @@ private fun LoginHeader(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "v${Constants.APP_VERSION}",
+            text = "v${BuildConfig.VERSION_NAME}",
             color = Color.Gray,
             fontSize = 14.sp
         )

@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.ui.screens.ConsoleDialog
 import ng.wimika.samplebankapp.loginRepo.ShareLogsRepositoryImpl
-import ng.wimika.samplebankapp.Constants
+import ng.wimika.samplebankapp.BuildConfig
 import android.os.Build
 
 // Define a sealed class to manage the state of the result dialog
@@ -95,7 +95,7 @@ fun TypingPatternVerificationScreen(
                 val androidVersion = Build.VERSION.RELEASE
                 val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
                 val logContent = debugLogs.joinToString("\n")
-                val appVersion = Constants.APP_VERSION
+                val appVersion = BuildConfig.VERSION_NAME
 
                 val shareLogsRepository = ShareLogsRepositoryImpl()
                 shareLogsRepository.shareLogs(
