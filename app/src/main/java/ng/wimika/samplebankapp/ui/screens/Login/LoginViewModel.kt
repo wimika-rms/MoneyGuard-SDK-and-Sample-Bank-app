@@ -239,14 +239,12 @@ class LoginViewModel(
                     val response = finalResult.data
                     Log.d(SDK_TAG, "  ⬅️ RESULT: hasToken=${response.token.isNotEmpty()}, tokenLength=${response.token.length}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: installationIdPrefix=${response.installationId?.take(8) ?: "none"}")
-                    Log.d(SDK_TAG, "  ⬅️ RESULT: hasUserNames=${response.userDetails.firstName.isNotBlank() || response.userDetails.lastName.isNotBlank()}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: highRiskThreshold=${response.highRiskThreshold}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: sessionResultFlag=${response.result}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: hostSyncStatus=${response.hostSyncStatus}")
                     if (response.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(response.token)
                         preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
-                        preferenceManager?.saveMoneyguardUserNames(response.userDetails.firstName, response.userDetails.lastName)
                         preferenceManager?.saveHighRiskThreshold(response.highRiskThreshold)
                     }
                     if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
