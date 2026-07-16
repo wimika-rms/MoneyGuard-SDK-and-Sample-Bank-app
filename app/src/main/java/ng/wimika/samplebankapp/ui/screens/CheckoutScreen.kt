@@ -33,7 +33,7 @@ fun CheckoutScreen(
     val context = LocalContext.current
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val sdkService = MoneyGuardClientApp.sdkService
-    val userId = preferenceManager?.getBankSessionId()
+    val moneyGuardToken = preferenceManager?.getMoneyGuardToken()
     val flowState = MoneyGuardClientApp.accountProtectionFlowState
     val coroutineScope = rememberCoroutineScope()
 
@@ -55,7 +55,7 @@ fun CheckoutScreen(
         if (flowState?.allAccounts?.isEmpty() != false && sdkService != null) {
             try {
                 val moneyGuardPolicy = sdkService.policy()
-                val result = moneyGuardPolicy.getUserAccounts(userId.toString(), partnerId = Constants.PARTNER_BANK_ID)
+                val result = moneyGuardPolicy.getUserAccounts(moneyGuardToken.orEmpty())
                 result.fold(
                     onSuccess = { response ->
                         accounts = response.bankAccounts
@@ -241,21 +241,15 @@ fun CheckoutScreen(
                             isLoading = true
                             try {
                                 val policy = sdkService?.policy()
-                                val paramUserId = userId ?: ""
-                                val paramPartnerId = ng.wimika.samplebankapp.Constants.PARTNER_BANK_ID
                                 val paramPolicyOptionId = flowState?.selectedPolicyOption?.id?.toString() ?: ""
                                 val paramCoveredAccountIds = flowState?.selectedAccountIds?.toList() ?: emptyList()
                                 val paramDebitAccountId = selectedAccount?.id.toString()
                                 val paramAutoRenew = flowState?.autoRenew ?: true
 
-                                Log.d("MoneyGuardTrace", "[SampleBankApp|CheckoutScreen] 📤 createPolicy called with: " +
-                                    "userId=$paramUserId, partnerId=$paramPartnerId, " +
-                                    "policyOptionId=$paramPolicyOptionId, coveredAccountIds=$paramCoveredAccountIds, " +
-                                    "debitAccountId=$paramDebitAccountId, autoRenew=$paramAutoRenew")
+                                Log.d("MoneyGuardTrace", "[SampleBankApp|CheckoutScreen] createPolicy called")
 
                                 val result = policy?.createPolicy(
-                                    userId = paramUserId,
-                                    partnerId = paramPartnerId,
+                                    moneyGuardToken = moneyGuardToken.orEmpty(),
                                     policyOptionId = paramPolicyOptionId,
                                     coveredAccountIds = paramCoveredAccountIds,
                                     debitAccountId = paramDebitAccountId,
@@ -325,4 +319,4 @@ fun CheckoutScreen(
             }
         }
     }
-} 
+}

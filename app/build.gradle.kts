@@ -16,9 +16,19 @@ android {
         versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val sabiBankBaseUrl = providers.gradleProperty("SABI_BANK_BASE_URL")
+            .orElse(providers.environmentVariable("SABI_BANK_BASE_URL"))
+            .orElse("http://10.0.2.2:5103/")
+            .get()
+        buildConfigField("String", "SABI_BANK_BASE_URL", "\"$sabiBankBaseUrl\"")
+        manifestPlaceholders["usesCleartextTraffic"] = "false"
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

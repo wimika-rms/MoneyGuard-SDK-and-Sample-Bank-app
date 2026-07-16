@@ -196,26 +196,8 @@ class LoginViewModel(
                 preferenceManager?.saveSuspiciousLoginStatus(false)
                 preferenceManager?.saveLoggedOut(false) // Clear logged out flag on successful login
 
-                // Step 2: Check if user is a MoneyGuard customer
-                val isCustomer = try {
-                    Log.d(SDK_TAG, "━━━ policy().isCustomer() ━━━")
-                    Log.d(SDK_TAG, "  ➡️ PARAMS: userId=${sessionData.sessionId.take(8)}..., partnerId=${Constants.PARTNER_BANK_ID}")
-                    val result = sdkService?.policy()?.isCustomer(sessionData.sessionId, Constants.PARTNER_BANK_ID)
-                    val customerResult = result?.getOrNull() ?: false
-                    Log.d(SDK_TAG, "  ⬅️ RESULT: isCustomer=$customerResult")
-                    customerResult
-                } catch (e: Exception) {
-                    Log.e(SDK_TAG, "  ❌ policy().isCustomer() EXCEPTION: ${e.message}", e)
-                    true // Fail open: assume customer and proceed with registration
-                }
-
-                if (!isCustomer) {
-                    Log.d(SDK_TAG, "  ➡️ User is NOT a MoneyGuard customer, skipping registration → handlePostLoginFlow")
-                    handlePostLoginFlow()
-                    return@launch
-                }
-
-                // Step 3: MoneyGuard Registration (only if user is a customer)
+                // Step 2: Exchange the bank reference for a MoneyGuard session.
+                // Registration is valid even when the customer has no policy yet.
                 val registrationResult = registerWithMoneyGuard(sessionData.sessionId)
                 if (registrationResult == RegistrationResult.NEEDS_VERIFICATION) {
                     _sideEffect.send(LoginSideEffect.ShowUntrustedDeviceDialog)

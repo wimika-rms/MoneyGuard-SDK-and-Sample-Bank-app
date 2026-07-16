@@ -108,7 +108,6 @@ fun SubmitClaimScreen(
     // Load initial data
     LaunchedEffect(Unit) {
         val token = preferenceManager?.getMoneyGuardToken() ?: ""
-        val userId = preferenceManager?.getBankSessionId() ?: ""
         if (token.isBlank()) {
             state = state.copy(errorMessage = "No authentication token found")
             return@LaunchedEffect
@@ -129,7 +128,7 @@ fun SubmitClaimScreen(
         )
 
         // Load user accounts
-        moneyGuardPolicy?.getUserAccounts(userId, partnerId = 101)?.fold(
+        moneyGuardPolicy?.getUserAccounts(token)?.fold(
             onSuccess = { response ->
                 val bankAccountsWithActivePolicy = response.bankAccounts.filter { it.hasActivePolicy }
                 state = state.copy(

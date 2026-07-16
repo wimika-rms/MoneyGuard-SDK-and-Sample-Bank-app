@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
+        android:usesCleartextTraffic="${usesCleartextTraffic}"
         android:fullBackupContent="false"
         android:allowBackup="false"
         android:name=".MoneyGuardClientApp"

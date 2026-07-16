@@ -6,6 +6,7 @@ import ng.wimika.samplebankapp.network.MoneyGuardClientApiService
 import ng.wimika.samplebankapp.network.NetworkUtils
 import ng.wimika.samplebankapp.loginRepo.models.ClientLoginRequest
 import ng.wimika.samplebankapp.loginRepo.models.ClientSessionResponse
+import ng.wimika.samplebankapp.BuildConfig
 
 interface LoginRepository {
     suspend fun login(email: String, password: String, appVersion: String, deviceModel: String, androidVersion: String): Flow<ClientSessionResponse>
@@ -14,7 +15,7 @@ interface LoginRepository {
 
 class LoginRepositoryImpl: LoginRepository {
     private val apiService: MoneyGuardClientApiService by lazy {
-        NetworkUtils.getRetrofitClient("https://moneyguardrestservice-ephgezbka5ggf7cb.uksouth-01.azurewebsites.net")
+        NetworkUtils.getRetrofitClient(BuildConfig.SABI_BANK_BASE_URL)
             .create(MoneyGuardClientApiService::class.java)
     }
 
