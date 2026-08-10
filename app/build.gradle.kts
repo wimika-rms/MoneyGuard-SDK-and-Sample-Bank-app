@@ -36,6 +36,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // No release keystore in this repo; debug-sign so local release
+            // builds are installable for testing.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {

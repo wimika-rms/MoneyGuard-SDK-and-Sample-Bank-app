@@ -15,6 +15,10 @@ interface IPreferenceManager {
     fun saveMoneyGuardInstallationId(token: String?)
     fun getMoneyGuardInstallationId(): String?
 
+    // Whether the MoneyGuard session reported an active policy at registration
+    fun saveHasActivePolicy(hasActivePolicy: Boolean)
+    fun hasActivePolicy(): Boolean
+
     fun saveUserFirstName(firstName: String?)
     fun getUserFirstName(): String?
 

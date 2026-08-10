@@ -14,6 +14,15 @@
 # Joda-Time references these optional conversion annotations only as metadata.
 -dontwarn org.joda.convert.FromString
 -dontwarn org.joda.convert.ToString
+
+# The app's own JSON DTOs carry no @SerializedName, so field names must survive
+# minification for Gson/Retrofit to round-trip the bank API payloads.
+-keep class ng.wimika.samplebankapp.loginRepo.models.** { *; }
+-keep class ng.wimika.samplebankapp.network.** { *; }
+-keep class ng.wimika.samplebankapp.ui.screens.claims.** { *; }
+# Retrofit's canonical R8 full-mode rule: keep any @retrofit2.http-annotated interface.
+-if interface * { @retrofit2.http.* public *** *(...); }
+-keep interface <1> { *; }
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 #

@@ -8,7 +8,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import ng.wimika.moneyguard_sdk.services.prelaunch.MoneyGuardPrelaunch
-import ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm
 import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
@@ -242,10 +241,12 @@ class LoginViewModel(
                     Log.d(SDK_TAG, "  ⬅️ RESULT: highRiskThreshold=${response.highRiskThreshold}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: sessionResultFlag=${response.result}")
                     Log.d(SDK_TAG, "  ⬅️ RESULT: hostSyncStatus=${response.hostSyncStatus}")
+                    Log.d(SDK_TAG, "  ⬅️ RESULT: hasActivePolicy=${response.hasActivePolicy}")
                     if (response.token.isNotEmpty()) {
                         preferenceManager?.saveMoneyGuardToken(response.token)
                         preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
                         preferenceManager?.saveHighRiskThreshold(response.highRiskThreshold)
+                        preferenceManager?.saveHasActivePolicy(response.hasActivePolicy)
                     }
                     if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
                         RegistrationResult.NEEDS_VERIFICATION
@@ -281,7 +282,19 @@ class LoginViewModel(
                 return@launch
             }
 
-            Log.d(SDK_TAG, "━━━ handlePostLoginFlow: directly performing credential check ━━━")
+            // MoneyGuard protection only applies with an active policy and the
+            // MoneyGuard app installed. hasActivePolicy is cached from this login's
+            // registration response, so no extra network round-trip is needed here.
+            val hasActivePolicy = preferenceManager?.hasActivePolicy() == true
+            val appInstalled = sdkService.utility()?.isMoneyGuardInstalled() == true
+            if (!hasActivePolicy || !appInstalled) {
+                Log.d(SDK_TAG, "━━━ handlePostLoginFlow: protection inactive (hasActivePolicy=$hasActivePolicy, appInstalled=$appInstalled) → Dashboard ━━━")
+                _uiState.update { it.copy(isLoading = false) }
+                _sideEffect.send(LoginSideEffect.NavigateToDashboard)
+                return@launch
+            }
+
+            Log.d(SDK_TAG, "━━━ handlePostLoginFlow: protection active → performing credential check ━━━")
             performCredentialCheck(token)
         }
     }
