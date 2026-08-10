@@ -4,9 +4,12 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import ng.wimika.moneyguard_sdk.services.utility.datasource.models.LocationCheckResponse
 import ng.wimika.moneyguard_sdk.services.prelaunch.MoneyGuardPrelaunch
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm
@@ -80,6 +83,10 @@ class LoginViewModel(
 
     private val moneyGuardPrelaunch: MoneyGuardPrelaunch? = sdkService?.prelaunch()
     //private val typingProfileService = sdkService?.getTypingProfile()
+
+    // Location check runs concurrently with the credential check; the unusual-location
+    // dialog still only shows after the credential dialog is dismissed.
+    private var locationCheckDeferred: Deferred<LocationCheckResponse?>? = null
 
     init {
         val isLoggedOut = preferenceManager?.getIsLoggedOut() ?: false
@@ -294,7 +301,10 @@ class LoginViewModel(
                 return@launch
             }
 
-            Log.d(SDK_TAG, "━━━ handlePostLoginFlow: protection active → performing credential check ━━━")
+            Log.d(SDK_TAG, "━━━ handlePostLoginFlow: protection active → performing credential + location checks in parallel ━━━")
+            locationCheckDeferred = viewModelScope.async {
+                sdkService.utility()?.checkLocation(token)
+            }
             performCredentialCheck(token)
         }
     }
@@ -359,7 +369,9 @@ class LoginViewModel(
             try {
                 Log.d(SDK_TAG, "━━━ utility().checkLocation() ━━━")
                 Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
-                val response = sdkService?.utility()?.checkLocation(token)
+                val response = locationCheckDeferred?.await()
+                    ?: sdkService?.utility()?.checkLocation(token)
+                locationCheckDeferred = null
 
                 Log.d(SDK_TAG, "  ⬅️ RESULT: response=${response}")
                 Log.d(SDK_TAG, "  ⬅️ RESULT: locations count=${response?.data?.size ?: 0}")
