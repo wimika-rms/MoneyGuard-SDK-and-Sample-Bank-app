@@ -108,6 +108,11 @@ fun CheckDebitScreen(
     var showSecondaryButton by remember { mutableStateOf(false) }
     var alertConfirmAction by remember { mutableStateOf<() -> Unit>({}) }
     var alertSecondaryAction by remember { mutableStateOf<() -> Unit>({}) }
+
+    // Dummy OTP step-up (demo only — no OTP is actually sent; the accepted code is fixed)
+    var showOtpDialog by remember { mutableStateOf(false) }
+    var otpInput by remember { mutableStateOf("") }
+    var otpError by remember { mutableStateOf<String?>(null) }
     
     // Add new state variables for policy status
     var moneyguardStatus by remember { mutableStateOf<MoneyGuardAppStatus?>(null) }
@@ -263,12 +268,29 @@ fun CheckDebitScreen(
             "\n\nSafety score: ${percent.toInt()}% — ${result.riskLevel ?: "Unclassified"} risk."
         } ?: ""
 
-        val flaggedRisks = result.risks
+        val activeRisks = result.risks
             .filter { it.status != RiskStatus.RISK_STATUS_SAFE && it.status != RiskStatus.RISK_STATUS_UNKNOWN }
+        val flaggedRisks = activeRisks
             .mapNotNull { it.statusSummary ?: it.name }
             .distinct()
             .joinToString(", ")
         val risksLine = if (flaggedRisks.isNotEmpty()) "\n\nDetected: $flaggedRisks" else ""
+
+        // Clear-and-immediate-danger risks escalate on their own, regardless of the
+        // score band. They include the SDK's local prelaunch findings, which the
+        // server's score never sees — so they must be honoured even on an Allow verdict.
+        val standaloneHighRiskNames = listOf(
+            SpecificRisk.SPECIFIC_RISK_NETWORK_WIFI_ENCRYPTION_NAME,
+            SpecificRisk.SPECIFIC_RISK_NETWORK_DNS_SPOOFING_NAME,
+            SpecificRisk.SPECIFIC_RISK_NETWORK_MITM_NAME,
+            SpecificRisk.SPECIFIC_RISK_USER_IDENTITY_COMPROMISE_NAME
+        )
+        val standaloneHighRisk = result.status == RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS ||
+                activeRisks.any { risk -> standaloneHighRiskNames.any { risk.name.contains(it) } }
+
+        // OTP step-up applies when the score sits in the high-risk band or a standalone
+        // high risk is present; a plain medium-band warning proceeds without OTP.
+        val requiresOtp = result.riskLevel == "High" || standaloneHighRisk
 
         // The verdict is the server's decision against this bank's configured risk
         // thresholds. Block removes the option to continue; Warn continues only through
@@ -290,6 +312,7 @@ fun CheckDebitScreen(
             }
 
             result.verdict == TransactionVerdict.WARN ||
+                    standaloneHighRisk ||
                     (result.verdict == null && result.status != RiskStatus.RISK_STATUS_SAFE &&
                             result.status != RiskStatus.RISK_STATUS_UNKNOWN) -> {
                 val title = when (result.status) {
@@ -301,14 +324,21 @@ fun CheckDebitScreen(
                 alertTitle = title
                 alertMessage = "We have detected threats that put this transaction at risk." +
                         risksLine + scoreLine +
-                        "\n\nProceeding is NOT recommended."
+                        "\n\nProceeding is NOT recommended." +
+                        if (requiresOtp) "\n\nAn OTP will be required to complete this transfer." else ""
                 alertButtonText = "Cancel Transfer"
                 showSecondaryButton = true
                 alertSecondaryButtonText = "Proceed Anyway"
                 alertConfirmAction = { showAlert = false }
                 alertSecondaryAction = {
                     showAlert = false
-                    showTransferSuccess()
+                    if (requiresOtp) {
+                        otpInput = ""
+                        otpError = null
+                        showOtpDialog = true
+                    } else {
+                        showTransferSuccess()
+                    }
                 }
             }
 
@@ -609,6 +639,68 @@ fun CheckDebitScreen(
                     } else null
                 )
             }
+
+            // Dummy OTP step-up for high-risk overrides. Demo only: nothing is sent;
+            // the accepted code is fixed so both success and rejection can be shown.
+            if (showOtpDialog) {
+                AlertDialog(
+                    onDismissRequest = { showOtpDialog = false },
+                    title = { Text("OTP Verification Required") },
+                    text = {
+                        Column {
+                            Text(
+                                "Because of the elevated risk on this transfer, a one-time " +
+                                        "password has been sent to your registered phone number. " +
+                                        "Enter it below to complete the transfer.\n\n" +
+                                        "(Demo build: use 123456)"
+                            )
+                            OutlinedTextField(
+                                value = otpInput,
+                                onValueChange = { input ->
+                                    if (input.length <= 6 && input.all { it.isDigit() }) {
+                                        otpInput = input
+                                        otpError = null
+                                    }
+                                },
+                                label = { Text("6-digit OTP") },
+                                isError = otpError != null,
+                                supportingText = { otpError?.let { Text(it) } },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp)
+                                    .testTag("otp_input")
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                if (otpInput == DEMO_OTP_CODE) {
+                                    showOtpDialog = false
+                                    showTransferSuccess()
+                                } else {
+                                    otpError = "Incorrect OTP. Please try again."
+                                }
+                            },
+                            enabled = otpInput.length == 6,
+                            modifier = Modifier.testTag("otp_verify_button")
+                        ) {
+                            Text("Verify")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showOtpDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
         }
     }
 }
+
+// Demo-only OTP accepted by the dummy step-up dialog; a real integration would
+// verify against the bank's OTP service.
+private const val DEMO_OTP_CODE = "123456"
