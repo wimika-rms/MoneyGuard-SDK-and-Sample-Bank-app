@@ -123,6 +123,7 @@ fun LoginScreen(
     var showUntrustedDeviceDialog by remember { mutableStateOf(false) }
     var showTypingVerificationFailedDialog by remember { mutableStateOf(false) }
     var typingVerificationFailedMessage by remember { mutableStateOf("") }
+    var bankOtp by remember { mutableStateOf("") }
     
     var usernameEditText by remember { mutableStateOf<EditText?>(null) }
     var permissionCheckTrigger by remember { mutableStateOf(0) }
@@ -216,6 +217,40 @@ fun LoginScreen(
                 RiskBottomSheet(
                     message = riskModalMessage,
                     onDismiss = { viewModel.onEvent(LoginEvent.OnDismissRiskModal) }
+                )
+            }
+
+            if (uiState.bankStepUpRequired) {
+                AlertDialog(
+                    onDismissRequest = {},
+                    title = { Text("Blacklisted login warning") },
+                    text = {
+                        Column {
+                            Text("This device or network is on your bank's blacklist. Cancel unless you recognise this login. To continue, verify the OTP sent by your bank.\n\n(Demo build: use 123456)")
+                            OutlinedTextField(
+                                value = bankOtp,
+                                onValueChange = { if (it.length <= 6 && it.all(Char::isDigit)) bankOtp = it },
+                                label = { Text("6-digit OTP") },
+                                isError = uiState.bankStepUpError != null,
+                                supportingText = { uiState.bankStepUpError?.let { Text(it) } },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                singleLine = true,
+                                modifier = Modifier.testTag("login_bank_otp_input")
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = { viewModel.onEvent(LoginEvent.OnBankStepUpSubmit(bankOtp)) },
+                            enabled = bankOtp.length == 6 && !uiState.isLoading
+                        ) { Text("Verify OTP") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            bankOtp = ""
+                            viewModel.onEvent(LoginEvent.OnBankStepUpCancel)
+                        }) { Text("Cancel Login") }
+                    }
                 )
             }
 
@@ -387,12 +422,6 @@ private fun LoginForm(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        DebugLogToggle(
-            isChecked = uiState.isDebugLogsEnabled,
-            onCheckedChange = { onEvent(LoginEvent.OnDebugLogsToggle(it)) }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
         Button(
             onClick = { onEvent(LoginEvent.OnLoginClick) },
             modifier = Modifier
@@ -419,33 +448,6 @@ private fun LoginForm(
                 Text("Login", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
         }
-    }
-}
-
-@Composable
-private fun DebugLogToggle(isChecked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Enable debug logs",
-            color = SabiBankColors.TextOnOrange,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
-        Switch(
-            checked = isChecked,
-            onCheckedChange = onCheckedChange,
-            modifier = Modifier.testTag("login_debug_logs_switch"),
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = SabiBankColors.White,
-                checkedTrackColor = SabiBankColors.White.copy(alpha = 0.7f),
-                uncheckedThumbColor = SabiBankColors.TextOnOrange.copy(alpha = 0.7f),
-                uncheckedTrackColor = SabiBankColors.TextOnOrange.copy(alpha = 0.3f)
-            )
-        )
     }
 }
 

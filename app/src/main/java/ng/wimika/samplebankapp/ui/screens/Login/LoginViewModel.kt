@@ -23,6 +23,7 @@ import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.local.IPreferenceManager
 import ng.wimika.samplebankapp.loginRepo.LoginRepository
 import ng.wimika.samplebankapp.loginRepo.LoginRepositoryImpl
+import ng.wimika.samplebankapp.loginRepo.StepUpRepository
 import java.security.MessageDigest
 
 // --- Data classes for State, Events, and Side Effects ---
@@ -37,6 +38,8 @@ data class LoginUiState(
     val prelaunchRisks: List<SpecificRisk> = emptyList(),
     val currentRiskIndex: Int = 0,
     val isPrelaunchChecking: Boolean = true,
+    val bankStepUpRequired: Boolean = false,
+    val bankStepUpError: String? = null,
 )
 
 sealed interface LoginEvent {
@@ -52,6 +55,8 @@ sealed interface LoginEvent {
     object OnDismissUntrustedDeviceDialog : LoginEvent
     object OnDismissTypingVerificationFailedDialog : LoginEvent
     object OnLogout : LoginEvent
+    data class OnBankStepUpSubmit(val otp: String) : LoginEvent
+    object OnBankStepUpCancel : LoginEvent
 }
 
 sealed interface LoginSideEffect {
@@ -72,6 +77,11 @@ class LoginViewModel(
     private val preferenceManager: IPreferenceManager? = MoneyGuardClientApp.preferenceManager,
     private val sdkService: ng.wimika.moneyguard_sdk.services.MoneyGuardSdkService? = MoneyGuardClientApp.sdkService
 ) : ViewModel() {
+
+    private val stepUpRepository = StepUpRepository()
+    private var pendingBankSession: String? = null
+    private var pendingBankFullName: String? = null
+    private var pendingChallenge: String? = null
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -122,6 +132,11 @@ class LoginViewModel(
                 handlePostLoginFlow()
             }
             is LoginEvent.OnLogout -> resetLoginState()
+            is LoginEvent.OnBankStepUpSubmit -> completeBankStepUp(event.otp)
+            is LoginEvent.OnBankStepUpCancel -> {
+                clearPendingStepUp()
+                _uiState.update { it.copy(bankStepUpRequired = false, bankStepUpError = null, isLoading = false) }
+            }
         }
     }
 
@@ -197,14 +212,16 @@ class LoginViewModel(
                     throw IllegalStateException("Login failed: Invalid session data.")
                 }
 
-                preferenceManager?.saveBankLoginDetails(sessionData.sessionId, sessionData.userFullName)
-                preferenceManager?.saveUserEmail(currentState.username.trim())
-                preferenceManager?.saveSuspiciousLoginStatus(false)
-                preferenceManager?.saveLoggedOut(false) // Clear logged out flag on successful login
-
                 // Step 2: Exchange the bank reference for a MoneyGuard session.
                 // Registration is valid even when the customer has no policy yet.
                 val registrationResult = registerWithMoneyGuard(sessionData.sessionId)
+                if (registrationResult == RegistrationResult.BANK_STEP_UP) {
+                    pendingBankSession = sessionData.sessionId
+                    pendingBankFullName = sessionData.userFullName
+                    _uiState.update { it.copy(isLoading = false, bankStepUpRequired = true) }
+                    return@launch
+                }
+                persistBankSession(sessionData.sessionId, sessionData.userFullName)
                 if (registrationResult == RegistrationResult.NEEDS_VERIFICATION) {
                     _sideEffect.send(LoginSideEffect.ShowUntrustedDeviceDialog)
                     return@launch
@@ -257,6 +274,9 @@ class LoginViewModel(
                     }
                     if (response.result == SessionResultFlags.UntrustedInstallationRequires2Fa) {
                         RegistrationResult.NEEDS_VERIFICATION
+                    } else if (response.result == SessionResultFlags.BankStepUpRequired) {
+                        pendingChallenge = response.screeningDecision?.challengeReference
+                        RegistrationResult.BANK_STEP_UP
                     } else {
                         if (response.hostSyncStatus.name == "HOST_UNAVAILABLE") RegistrationResult.DEGRADED else RegistrationResult.SUCCESS
                     }
@@ -278,6 +298,46 @@ class LoginViewModel(
             Log.e(SDK_TAG, "  ❌ authentication().register() EXCEPTION: ${e.message}", e)
             RegistrationResult.DEGRADED
         }
+    }
+
+    private fun completeBankStepUp(otp: String) {
+        val session = pendingBankSession ?: return
+        val challenge = pendingChallenge ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, bankStepUpError = null) }
+            try {
+                val proof = stepUpRepository.verify(session, challenge, "login", otp)
+                val result = sdkService?.authentication()?.completeBankStepUp(
+                    Constants.PARTNER_BANK_ID, session, challenge, proof
+                )?.first { it !is MoneyGuardResult.Loading }
+                val response = (result as? MoneyGuardResult.Success)?.data
+                    ?: throw IllegalStateException("MoneyGuard could not complete verification.")
+                if (response.token.isBlank()) throw IllegalStateException("No authenticated session was issued.")
+                preferenceManager?.saveMoneyGuardToken(response.token)
+                preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
+                preferenceManager?.saveHighRiskThreshold(response.highRiskThreshold)
+                preferenceManager?.saveHasActivePolicy(response.hasActivePolicy)
+                persistBankSession(session, pendingBankFullName)
+                clearPendingStepUp()
+                _uiState.update { it.copy(bankStepUpRequired = false, isLoading = false) }
+                handlePostLoginFlow()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, bankStepUpError = e.message ?: "OTP verification failed.") }
+            }
+        }
+    }
+
+    private fun persistBankSession(sessionId: String, fullName: String?) {
+        preferenceManager?.saveBankLoginDetails(sessionId, fullName)
+        preferenceManager?.saveUserEmail(_uiState.value.username.trim())
+        preferenceManager?.saveSuspiciousLoginStatus(false)
+        preferenceManager?.saveLoggedOut(false)
+    }
+
+    private fun clearPendingStepUp() {
+        pendingBankSession = null
+        pendingBankFullName = null
+        pendingChallenge = null
     }
 
     private fun handlePostLoginFlow() {
@@ -591,5 +651,6 @@ private enum class RegistrationResult {
     SUCCESS,
     DEGRADED,
     SECURITY_REJECTED,
-    NEEDS_VERIFICATION
+    NEEDS_VERIFICATION,
+    BANK_STEP_UP
 }

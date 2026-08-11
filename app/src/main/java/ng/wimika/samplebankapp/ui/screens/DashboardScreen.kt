@@ -409,7 +409,6 @@ private fun RiskScoreCard() {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val token = preferenceManager?.getMoneyGuardToken()
     var riskScore by remember { mutableStateOf<Int?>(null) }
-    var riskScoreMaximum by remember { mutableStateOf<Int?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
     // Continuously check for risk score at 3-second intervals until we get a score > 0
@@ -426,12 +425,11 @@ private fun RiskScoreCard() {
                         Log.d("MoneyGuardTrace", "  ⬅️ RESULT: entry[$i] score=${entry.score.value}, name=${entry.score}")
                     }
                     Log.d("RiskProfile", "Risk profile fetched: $riskProfile")
-                    // Core sends weighted raw points. Display the earned total directly
-                    // against the configured maximum (for example 82 out of 90).
+                    // Core sends weighted raw points. The dashboard presents the earned
+                    // total on the product's fixed 100-point display scale.
                     val earnedPoints = riskProfile?.sumOf { it.score.value } ?: 0.0
                     val availablePoints = riskProfile?.sumOf { it.score.maximum } ?: 0.0
                     val currentRiskScore = earnedPoints.toInt()
-                    val currentRiskMaximum = availablePoints.toInt()
                     Log.d(
                         "MoneyGuardTrace",
                         "  ⬅️ RAW SCORE: score=$currentRiskScore earned=$earnedPoints available=$availablePoints"
@@ -439,7 +437,6 @@ private fun RiskScoreCard() {
                     
                     if (currentRiskScore > 0) {
                         riskScore = currentRiskScore
-                        riskScoreMaximum = currentRiskMaximum
                         isLoading = false
                         // Persist the risk score for use in other screens
                         preferenceManager?.saveCurrentRiskScore(currentRiskScore)
@@ -545,7 +542,7 @@ private fun RiskScoreCard() {
                             .background(Color(0xFFFF2D2D).copy(alpha = 0.5f), shape = RoundedCornerShape(1.dp))
                     )
                     Text(
-                        text = (riskScoreMaximum ?: 90).toString(),
+                        text = "100",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFFF2D2D),
                         textAlign = TextAlign.Center

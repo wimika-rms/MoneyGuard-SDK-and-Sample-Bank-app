@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,6 +55,8 @@ import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransactio
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransactionCheckResult
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.LatLng
 import ng.wimika.samplebankapp.MoneyGuardClientApp
+import ng.wimika.samplebankapp.loginRepo.StepUpRepository
+import kotlinx.coroutines.launch
 import ng.wimika.samplebankapp.MoneyGuardClientApp.Companion.preferenceManager
 import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
 import ng.wimika.moneyguard_sdk.services.utility.MoneyGuardAppStatus
@@ -62,6 +65,7 @@ data class TransactionData(
     val sourceAccountNumber: String,
     val destinationAccountNumber: String,
     val destinationBank: String,
+    val destinationBankCode: String,
     val memo: String,
     val amount: Double,
     //val geoLocation: GeoLocation
@@ -93,6 +97,7 @@ fun CheckDebitScreen(
     var sourceAccountExpanded by remember { mutableStateOf(false) }
     var destinationAccountNumber by remember { mutableStateOf("") }
     var destinationBank by remember { mutableStateOf("") }
+    var destinationBankCode by remember { mutableStateOf("") }
     var destinationBankExpanded by remember { mutableStateOf(false) }
     var memo by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -113,6 +118,10 @@ fun CheckDebitScreen(
     var showOtpDialog by remember { mutableStateOf(false) }
     var otpInput by remember { mutableStateOf("") }
     var otpError by remember { mutableStateOf<String?>(null) }
+    var otpChallengeReference by remember { mutableStateOf("") }
+    var otpVerifying by remember { mutableStateOf(false) }
+    val stepUpRepository = remember { StepUpRepository() }
+    val coroutineScope = rememberCoroutineScope()
     
     // Add new state variables for policy status
     var moneyguardStatus by remember { mutableStateOf<MoneyGuardAppStatus?>(null) }
@@ -311,6 +320,23 @@ fun CheckDebitScreen(
                 }
             }
 
+            result.screeningDecision?.requiredAction == "BankOtpStepUp" -> {
+                otpChallengeReference = result.screeningDecision?.challengeReference.orEmpty()
+                showAlert = true
+                alertTitle = "Blacklisted Account Warning"
+                alertMessage = "This destination account is on your bank's blacklist. Cancel this transfer unless you are certain it is legitimate. Continuing requires bank OTP verification."
+                alertButtonText = "Cancel Transfer"
+                showSecondaryButton = true
+                alertSecondaryButtonText = "Proceed with OTP"
+                alertConfirmAction = { showAlert = false }
+                alertSecondaryAction = {
+                    showAlert = false
+                    otpInput = ""
+                    otpError = null
+                    showOtpDialog = true
+                }
+            }
+
             result.verdict == TransactionVerdict.WARN ||
                     standaloneHighRisk ||
                     (result.verdict == null && result.status != RiskStatus.RISK_STATUS_SAFE &&
@@ -356,6 +382,7 @@ fun CheckDebitScreen(
             sourceAccountNumber = data.sourceAccountNumber,
             destinationAccountNumber = data.destinationAccountNumber,
             destinationBank = data.destinationBank,
+            destinationBankCode = data.destinationBankCode,
             memo = data.memo,
             amount = data.amount
         )
@@ -412,6 +439,7 @@ fun CheckDebitScreen(
             sourceAccountNumber = sourceAccountNumber,
             destinationAccountNumber = destinationAccountNumber,
             destinationBank = destinationBank,
+            destinationBankCode = destinationBankCode,
             memo = memo,
             amount = amountDouble,
         )
@@ -527,11 +555,12 @@ fun CheckDebitScreen(
                         expanded = destinationBankExpanded,
                         onDismissRequest = { destinationBankExpanded = false }
                     ) {
-                        listOf("GTB", "Wema", "Opay", "Zenith Bank", "First Bank", "UBA", "Access Bank").forEach { bank ->
+                        destinationBanks.forEach { bank ->
                             DropdownMenuItem(
-                                text = { Text(bank) },
+                                text = { Text(bank.name) },
                                 onClick = {
-                                    destinationBank = bank
+                                    destinationBank = bank.name
+                                    destinationBankCode = bank.code
                                     destinationBankExpanded = false
                                 }
                             )
@@ -640,8 +669,8 @@ fun CheckDebitScreen(
                 )
             }
 
-            // Dummy OTP step-up for high-risk overrides. Demo only: nothing is sent;
-            // the accepted code is fixed so both success and rejection can be shown.
+            // The demo code is checked by the Sabi bank API. MoneyGuard receives only
+            // the opaque bank proof, never the OTP itself.
             if (showOtpDialog) {
                 AlertDialog(
                     onDismissRequest = { showOtpDialog = false },
@@ -677,14 +706,24 @@ fun CheckDebitScreen(
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                if (otpInput == DEMO_OTP_CODE) {
-                                    showOtpDialog = false
-                                    showTransferSuccess()
-                                } else {
-                                    otpError = "Incorrect OTP. Please try again."
+                                val bankSession = preferenceManager?.getBankSessionId().orEmpty()
+                                val challenge = otpChallengeReference.ifBlank {
+                                    java.util.UUID.randomUUID().toString()
+                                }
+                                otpVerifying = true
+                                coroutineScope.launch {
+                                    runCatching {
+                                        stepUpRepository.verify(bankSession, challenge, "transfer", otpInput)
+                                    }.onSuccess {
+                                        showOtpDialog = false
+                                        showTransferSuccess()
+                                    }.onFailure {
+                                        otpError = it.message ?: "Incorrect OTP. Please try again."
+                                    }
+                                    otpVerifying = false
                                 }
                             },
-                            enabled = otpInput.length == 6,
+                            enabled = otpInput.length == 6 && !otpVerifying,
                             modifier = Modifier.testTag("otp_verify_button")
                         ) {
                             Text("Verify")
@@ -703,4 +742,14 @@ fun CheckDebitScreen(
 
 // Demo-only OTP accepted by the dummy step-up dialog; a real integration would
 // verify against the bank's OTP service.
-private const val DEMO_OTP_CODE = "123456"
+private data class DestinationBank(val name: String, val code: String)
+
+private val destinationBanks = listOf(
+    DestinationBank("GTBank", "058"),
+    DestinationBank("Wema Bank", "035"),
+    DestinationBank("OPay", "999992"),
+    DestinationBank("Zenith Bank", "057"),
+    DestinationBank("First Bank", "011"),
+    DestinationBank("UBA", "033"),
+    DestinationBank("Access Bank", "044")
+)
