@@ -19,6 +19,8 @@ import ng.wimika.samplebankapp.ui.state.AccountProtectionFlowState
 class MoneyGuardClientApp: Application(), DefaultLifecycleObserver {
 
     companion object {
+        lateinit var application: MoneyGuardClientApp
+            private set
         var sdkService: MoneyGuardSdkService? = null
         var preferenceManager: IPreferenceManager? = null
         var accountProtectionFlowState: AccountProtectionFlowState? = null
@@ -33,6 +35,7 @@ class MoneyGuardClientApp: Application(), DefaultLifecycleObserver {
 
     override fun onCreate() {
         super<Application>.onCreate()
+        application = this
         preferenceManager = PreferenceManager(this)
 
         Log.d(SDK_TAG, "━━━ MoneyGuardSdk.initialize() ━━━")

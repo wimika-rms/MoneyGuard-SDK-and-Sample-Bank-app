@@ -4,6 +4,7 @@ package ng.wimika.samplebankapp.ui.screens.Login
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import android.text.Editable
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.content.ContextCompat
 import ng.wimika.moneyguard_sdk.services.in_app_content.models.InAppContentResponse
 import ng.wimika.samplebankapp.R
 import ng.wimika.samplebankapp.ui.theme.SabiBankColors
@@ -128,6 +130,35 @@ fun LoginScreen(
     var usernameEditText by remember { mutableStateOf<EditText?>(null) }
     var permissionCheckTrigger by remember { mutableStateOf(0) }
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        // A denied permission is still a valid result: MoneyGuard will require bank OTP
+        // instead of silently bypassing geolocation validation.
+        viewModel.onEvent(LoginEvent.OnLoginClick)
+    }
+
+    val handleLoginEvent: (LoginEvent) -> Unit = { event ->
+        if (event == LoginEvent.OnLoginClick) {
+            val fineGranted = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val coarseGranted = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!fineGranted && !coarseGranted) {
+                locationPermissionLauncher.launch(arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ))
+            } else {
+                viewModel.onEvent(event)
+            }
+        } else {
+            viewModel.onEvent(event)
+        }
+    }
+
     // --- Overlay Permission Handling ---
 //    val settingsLauncher = rememberLauncherForActivityResult(
 //        contract = ActivityResultContracts.StartActivityForResult()
@@ -203,7 +234,7 @@ fun LoginScreen(
                 LoginForm(
                     modifier = Modifier.weight(0.65f),
                     uiState = uiState,
-                    onEvent = viewModel::onEvent,
+                    onEvent = handleLoginEvent,
                     onUsernameEditTextCreated = { editText -> usernameEditText = editText }
                 )
             }
@@ -223,10 +254,10 @@ fun LoginScreen(
             if (uiState.bankStepUpRequired) {
                 AlertDialog(
                     onDismissRequest = {},
-                    title = { Text("Blacklisted login warning") },
+                    title = { Text("Additional login verification") },
                     text = {
                         Column {
-                            Text("This device or network is on your bank's blacklist. Cancel unless you recognise this login. To continue, verify the OTP sent by your bank.\n\n(Demo build: use 123456)")
+                            Text("MoneyGuard detected a login risk, such as a rogue location, impossible travel, unavailable location, or a blacklisted device/network. Cancel unless you recognise this login. To continue, verify the OTP sent by your bank.\n\n(Demo build: use 123456)")
                             OutlinedTextField(
                                 value = bankOtp,
                                 onValueChange = { if (it.length <= 6 && it.all(Char::isDigit)) bankOtp = it },

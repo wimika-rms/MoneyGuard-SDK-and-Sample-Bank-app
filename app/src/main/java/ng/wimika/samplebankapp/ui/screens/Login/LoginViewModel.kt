@@ -4,15 +4,13 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import ng.wimika.moneyguard_sdk.services.utility.datasource.models.LocationCheckResponse
 import ng.wimika.moneyguard_sdk.services.prelaunch.MoneyGuardPrelaunch
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.Credential
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm
+import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.LoginLocation
 import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
 import ng.wimika.moneyguard_sdk_commons.types.RiskStatus
 import ng.wimika.moneyguard_sdk_commons.types.SessionResultFlags
@@ -23,6 +21,7 @@ import ng.wimika.samplebankapp.MoneyGuardClientApp
 import ng.wimika.samplebankapp.local.IPreferenceManager
 import ng.wimika.samplebankapp.loginRepo.LoginRepository
 import ng.wimika.samplebankapp.loginRepo.LoginRepositoryImpl
+import ng.wimika.samplebankapp.loginRepo.LoginLocationProvider
 import ng.wimika.samplebankapp.loginRepo.StepUpRepository
 import java.security.MessageDigest
 
@@ -82,6 +81,8 @@ class LoginViewModel(
     private var pendingBankSession: String? = null
     private var pendingBankFullName: String? = null
     private var pendingChallenge: String? = null
+    private var pendingLoginLocation: LoginLocation? = null
+    private val loginLocationProvider = LoginLocationProvider(MoneyGuardClientApp.application)
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -93,10 +94,6 @@ class LoginViewModel(
 
     private val moneyGuardPrelaunch: MoneyGuardPrelaunch? = sdkService?.prelaunch()
     //private val typingProfileService = sdkService?.getTypingProfile()
-
-    // Location check runs concurrently with the credential check; the unusual-location
-    // dialog still only shows after the credential dialog is dismissed.
-    private var locationCheckDeferred: Deferred<LocationCheckResponse?>? = null
 
     init {
         val isLoggedOut = preferenceManager?.getIsLoggedOut() ?: false
@@ -120,7 +117,10 @@ class LoginViewModel(
             }
             is LoginEvent.OnLoginClick -> login()
             is LoginEvent.OnDismissRiskModal -> handleRiskDismissal()
-            is LoginEvent.OnDismissCredentialDialog -> performLocationCheck()
+            is LoginEvent.OnDismissCredentialDialog -> viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = false) }
+                _sideEffect.send(LoginSideEffect.NavigateToDashboard)
+            }
             is LoginEvent.OnDismissUnusualLocationDialogAndVerify -> viewModelScope.launch { _sideEffect.send(LoginSideEffect.NavigateToVerification) }
             is LoginEvent.OnDismissUnusualLocationDialogAndProceed -> {
                 preferenceManager?.saveSuspiciousLoginStatus(true)
@@ -214,10 +214,14 @@ class LoginViewModel(
 
                 // Step 2: Exchange the bank reference for a MoneyGuard session.
                 // Registration is valid even when the customer has no policy yet.
-                val registrationResult = registerWithMoneyGuard(sessionData.sessionId)
+                val loginLocation = runCatching { loginLocationProvider.current() }
+                    .onFailure { Log.w(SDK_TAG, "Fresh login location unavailable; bank step-up will be required") }
+                    .getOrNull()
+                val registrationResult = registerWithMoneyGuard(sessionData.sessionId, loginLocation)
                 if (registrationResult == RegistrationResult.BANK_STEP_UP) {
                     pendingBankSession = sessionData.sessionId
                     pendingBankFullName = sessionData.userFullName
+                    pendingLoginLocation = loginLocation
                     _uiState.update { it.copy(isLoading = false, bankStepUpRequired = true) }
                     return@launch
                 }
@@ -245,14 +249,16 @@ class LoginViewModel(
         }
     }
 
-    private suspend fun registerWithMoneyGuard(sessionId: String): RegistrationResult {
+    private suspend fun registerWithMoneyGuard(sessionId: String, loginLocation: LoginLocation?): RegistrationResult {
         return try {
             Log.d(SDK_TAG, "━━━ authentication().register() ━━━")
             Log.d(SDK_TAG, "  ➡️ PARAMS: partnerBankId=${Constants.PARTNER_BANK_ID}, hasPartnerSessionToken=${sessionId.isNotEmpty()}, partnerSessionTokenLength=${sessionId.length}")
-            val resultFlow = sdkService?.authentication()?.register(
-                parteBankId = Constants.PARTNER_BANK_ID,
-                partnerSessionToken = sessionId
-            )
+            val authentication = sdkService?.authentication()
+            val resultFlow = if (loginLocation != null) {
+                authentication?.register(Constants.PARTNER_BANK_ID, sessionId, loginLocation)
+            } else {
+                authentication?.register(Constants.PARTNER_BANK_ID, sessionId)
+            }
 
             val finalResult = resultFlow?.first { it !is MoneyGuardResult.Loading }
             Log.d(SDK_TAG, "  ⬅️ RESULT TYPE: ${finalResult?.javaClass?.simpleName}")
@@ -307,9 +313,11 @@ class LoginViewModel(
             _uiState.update { it.copy(isLoading = true, bankStepUpError = null) }
             try {
                 val proof = stepUpRepository.verify(session, challenge, "login", otp)
-                val result = sdkService?.authentication()?.completeBankStepUp(
-                    Constants.PARTNER_BANK_ID, session, challenge, proof
-                )?.first { it !is MoneyGuardResult.Loading }
+                val authentication = sdkService?.authentication()
+                val resultFlow = pendingLoginLocation?.let {
+                    authentication?.completeBankStepUp(Constants.PARTNER_BANK_ID, session, challenge, proof, it)
+                } ?: authentication?.completeBankStepUp(Constants.PARTNER_BANK_ID, session, challenge, proof)
+                val result = resultFlow?.first { it !is MoneyGuardResult.Loading }
                 val response = (result as? MoneyGuardResult.Success)?.data
                     ?: throw IllegalStateException("MoneyGuard could not complete verification.")
                 if (response.token.isBlank()) throw IllegalStateException("No authenticated session was issued.")
@@ -338,6 +346,7 @@ class LoginViewModel(
         pendingBankSession = null
         pendingBankFullName = null
         pendingChallenge = null
+        pendingLoginLocation = null
     }
 
     private fun handlePostLoginFlow() {
@@ -361,10 +370,7 @@ class LoginViewModel(
                 return@launch
             }
 
-            Log.d(SDK_TAG, "━━━ handlePostLoginFlow: protection active → performing credential + location checks in parallel ━━━")
-            locationCheckDeferred = viewModelScope.async {
-                sdkService.utility()?.checkLocation(token)
-            }
+            Log.d(SDK_TAG, "━━━ handlePostLoginFlow: protection active → performing credential check ━━━")
             performCredentialCheck(token)
         }
     }
@@ -407,58 +413,17 @@ class LoginViewModel(
                         else -> {
                             // Failure or unexpected result — fail silently and proceed
                             Log.w(SDK_TAG, "  ⚠️ RESULT: credential check returned non-success: $result — proceeding silently")
-                            viewModelScope.launch { performLocationCheck() }
+                            viewModelScope.launch {
+                                _uiState.update { it.copy(isLoading = false) }
+                                _sideEffect.send(LoginSideEffect.NavigateToDashboard)
+                            }
                         }
                     }
                 }
             } catch (e: Exception) {
                 Log.e(SDK_TAG, "  ❌ authentication().credentialCheck() EXCEPTION: ${e.message}", e)
-                // Failsafe: proceed to location check if credential check has an error
-                performLocationCheck()
-            }
-        }
-    }
-
-    private fun performLocationCheck() {
-        viewModelScope.launch {
-            val token = preferenceManager?.getMoneyGuardToken() ?: run {
+                // The login location was already enforced before session issuance.
                 _sideEffect.send(LoginSideEffect.NavigateToDashboard)
-                return@launch
-            }
-
-            try {
-                Log.d(SDK_TAG, "━━━ utility().checkLocation() ━━━")
-                Log.d(SDK_TAG, "  ➡️ PARAMS: hasToken=${token.isNotEmpty()}, tokenLength=${token.length}")
-                val response = locationCheckDeferred?.await()
-                    ?: sdkService?.utility()?.checkLocation(token)
-                locationCheckDeferred = null
-
-                Log.d(SDK_TAG, "  ⬅️ RESULT: response=${response}")
-                Log.d(SDK_TAG, "  ⬅️ RESULT: locations count=${response?.data?.size ?: 0}")
-                response?.data?.forEachIndexed { i, item ->
-                    Log.d(SDK_TAG, "  ⬅️ RESULT: location[$i]=$item")
-                }
-
-                //Use joinToString to format the list with a newline for each item
-                val formattedList = response?.data?.joinToString(separator = "\n") { item ->
-                    "  - $item" // 'item' will use the data class's automatic toString()
-                } ?: "null" // Handle the case where the list itself is null
-
-                Log.i(LOG_TAG, "[SampleBankApp|LoginviewModel] Location check:\n$formattedList")
-                if (response?.data?.isNotEmpty() == true) {
-                    Log.w(SDK_TAG, "  ⚠️ Unusual locations detected → showing dialog")
-                    preferenceManager?.saveRiskToRegister("unusual_location")
-                    _sideEffect.send(LoginSideEffect.ShowUnusualLocationDialog)
-                } else {
-                    Log.d(SDK_TAG, "  ✅ No unusual locations → Dashboard")
-                    _sideEffect.send(LoginSideEffect.NavigateToDashboard)
-                }
-            } catch (e: Exception) {
-                Log.e(SDK_TAG, "  ❌ utility().checkLocation() EXCEPTION: ${e.message}", e)
-                Log.e(LOG_TAG, "[SampleBankApp|LoginviewModel] ❌ Error during location check: ${e.message}")
-                // Failsafe: proceed to dashboard if location check fails
-                _sideEffect.send(LoginSideEffect.NavigateToDashboard)
-            } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
