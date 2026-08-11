@@ -49,6 +49,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import ng.wimika.moneyguard_sdk_commons.types.RiskStatus
+import ng.wimika.moneyguard_sdk_commons.types.TransactionVerdict
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransaction
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.DebitTransactionCheckResult
 import ng.wimika.moneyguard_sdk.services.transactioncheck.models.LatLng
@@ -139,26 +140,11 @@ fun CheckDebitScreen(
         }
     }
 
-    // Consolidated security checks in proper priority order
+    // Consolidated security checks in proper priority order.
+    // (The old cached risk-score-vs-threshold gate was removed: the threshold decision
+    // is now made per-transaction by the backend and arrives as the debit-check verdict.)
     LaunchedEffect(Unit) {
-        // HIGHEST PRIORITY: Risk score vs high risk threshold check
-        val currentRiskScore = preferenceManager?.getCurrentRiskScore() ?: 0
-        val highRiskThreshold = preferenceManager?.getHighRiskThreshold() ?: 0.0
-        
-        if (currentRiskScore > 0 && currentRiskScore < highRiskThreshold) {
-            showAlert = true
-            alertTitle = "Low Risk Posture"
-            alertMessage = "Your risk posture is very low and you have pending issues that need to be resolved on the MoneyGuard App before you can proceed with transactions."
-            alertButtonText = "OK"
-            showSecondaryButton = false
-            alertConfirmAction = { 
-                showAlert = false
-                onBackClick() // Navigate back to dashboard
-            }
-            return@LaunchedEffect // Exit early to prevent other checks
-        }
-
-        // SECOND PRIORITY: Identity compromised check
+        // FIRST PRIORITY: Identity compromised check
         val identityCompromised = preferenceManager?.isIdentityCompromised() ?: false
         if (identityCompromised) {
             showAlert = true
@@ -173,7 +159,7 @@ fun CheckDebitScreen(
             return@LaunchedEffect // Exit early to prevent other checks
         }
 
-        // THIRD PRIORITY: Check for specific risks from risk register that prevent transactions
+        // SECOND PRIORITY: Check for specific risks from risk register that prevent transactions
         val riskRegister = preferenceManager?.getRiskRegister() ?: emptyList()
         
         when {
@@ -260,65 +246,73 @@ fun CheckDebitScreen(
 //        }
 //    }
 
+    fun showTransferSuccess() {
+        isLoading = false
+        showAlert = true
+        alertTitle = "Transfer Successful ✅"
+        alertMessage = "Your transfer has been completed successfully."
+        alertButtonText = "OK"
+        showSecondaryButton = false
+        alertConfirmAction = { showAlert = false }
+    }
+
     fun handleRiskStatus(result: DebitTransactionCheckResult) {
-        when (result.status) {
-            RiskStatus.RISK_STATUS_WARN -> {
-                val commaSeparatedRisks = result.risks
-                    .filter { it.status == RiskStatus.RISK_STATUS_WARN }
-                    .joinToString(", ") { it.statusSummary.toString() }
-                
-                isLoading = false
+        isLoading = false
+
+        val scoreLine = result.riskScorePercent?.let { percent ->
+            "\n\nSafety score: ${percent.toInt()}% — ${result.riskLevel ?: "Unclassified"} risk."
+        } ?: ""
+
+        val flaggedRisks = result.risks
+            .filter { it.status != RiskStatus.RISK_STATUS_SAFE && it.status != RiskStatus.RISK_STATUS_UNKNOWN }
+            .mapNotNull { it.statusSummary ?: it.name }
+            .distinct()
+            .joinToString(", ")
+        val risksLine = if (flaggedRisks.isNotEmpty()) "\n\nDetected: $flaggedRisks" else ""
+
+        // The verdict is the server's decision against this bank's configured risk
+        // thresholds. Block removes the option to continue; Warn continues only through
+        // an explicit, non-recommended override. When the verdict is absent (older
+        // backend or failed call) the advisory status rollup decides.
+        when {
+            result.verdict == TransactionVerdict.BLOCK -> {
                 showAlert = true
-                alertTitle = "Warning"
-                alertMessage = "We have detected some threats that may put your transaction at risk, " +
-                        "please review and proceed with caution - $commaSeparatedRisks"
-                alertButtonText = "Proceed"
+                alertTitle = "Transaction Blocked"
+                alertMessage = "This transaction was blocked because the current risk on this " +
+                        "device or session is above your bank's allowed level." +
+                        risksLine + scoreLine
+                alertButtonText = "Back to Dashboard"
                 showSecondaryButton = false
-                alertConfirmAction = { showAlert = false }
+                alertConfirmAction = {
+                    showAlert = false
+                    onBackClick()
+                }
             }
-            RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS -> {
-                isLoading = false
+
+            result.verdict == TransactionVerdict.WARN ||
+                    (result.verdict == null && result.status != RiskStatus.RISK_STATUS_SAFE &&
+                            result.status != RiskStatus.RISK_STATUS_UNKNOWN) -> {
+                val title = when (result.status) {
+                    RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS -> "Compromised Credentials"
+                    RiskStatus.RISK_STATUS_UNSAFE_LOCATION -> "Suspicious Location"
+                    else -> "High Risk Warning"
+                }
                 showAlert = true
-                alertTitle = "2FA Required"
-                alertMessage = "We have detected that you logged in with compromised credentials, " +
-                        "a 2FA is required to proceed"
-                alertButtonText = "Proceed"
-                showSecondaryButton = false
+                alertTitle = title
+                alertMessage = "We have detected threats that put this transaction at risk." +
+                        risksLine + scoreLine +
+                        "\n\nProceeding is NOT recommended."
+                alertButtonText = "Cancel Transfer"
+                showSecondaryButton = true
+                alertSecondaryButtonText = "Proceed Anyway"
                 alertConfirmAction = { showAlert = false }
+                alertSecondaryAction = {
+                    showAlert = false
+                    showTransferSuccess()
+                }
             }
-            RiskStatus.RISK_STATUS_UNSAFE_LOCATION -> {
-                isLoading = false
-                showAlert = true
-                alertTitle = "2FA Required"
-                alertMessage = "We have detected that this transaction is happening in a suspicious location, " +
-                        "a 2FA is required to proceed"
-                alertButtonText = "Proceed"
-                showSecondaryButton = false
-                alertConfirmAction = { showAlert = false }
-            }
-            RiskStatus.RISK_STATUS_UNSAFE -> {
-                val commaSeparatedRisks = result.risks
-                    .filter { it.status == RiskStatus.RISK_STATUS_UNSAFE }
-                    .joinToString(", ") { it.statusSummary.toString() }
-                
-                isLoading = false
-                showAlert = true
-                alertTitle = "2FA Required"
-                alertMessage = "We have detected some threats that may put your transaction at risk, " +
-                        "a 2FA is required to proceed - $commaSeparatedRisks"
-                alertButtonText = "Proceed"
-                showSecondaryButton = false
-                alertConfirmAction = { showAlert = false }
-            }
-            else -> {
-                isLoading = false
-                showAlert = true
-                alertTitle = "Transfer Successful ✅"
-                alertMessage = "Your transfer has been completed successfully."
-                alertButtonText = "OK"
-                showSecondaryButton = false
-                alertConfirmAction = { showAlert = false }
-            }
+
+            else -> showTransferSuccess()
         }
     }
 
