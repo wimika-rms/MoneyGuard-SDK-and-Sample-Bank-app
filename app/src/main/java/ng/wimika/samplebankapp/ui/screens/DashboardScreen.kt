@@ -39,6 +39,7 @@ fun DashboardScreen(
 ) {
     val preferenceManager = MoneyGuardClientApp.preferenceManager
     val userFullName = preferenceManager?.getBankUserFullName() ?: "Enioluwa Oke"
+    val protectionWarning = preferenceManager?.getMoneyGuardProtectionWarning()
     val sdkService = MoneyGuardClientApp.sdkService;
     // State for MoneyGuard status
     var moneyguardStatus by remember { mutableStateOf<MoneyGuardAppStatus?>(null) }
@@ -83,6 +84,10 @@ fun DashboardScreen(
                     onProtectAccount = onProtectAccount,
                     onDownloadMoneyGuard = onDownloadMoneyGuard
                 )
+                if (!protectionWarning.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    MoneyGuardProtectionWarning(protectionWarning)
+                }
                 Spacer(modifier = Modifier.height(24.dp))
                 AccountCard()
                 // Risk Score Card - only show when MoneyGuard is Active
@@ -126,6 +131,35 @@ fun DashboardScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MoneyGuardProtectionWarning(message: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("moneyguard_protection_warning"),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E8)),
+        border = BorderStroke(1.dp, Color(0xFFF97316)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Default.WarningAmber,
+                contentDescription = null,
+                tint = Color(0xFFF97316)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = message,
+                color = Color(0xFF5C2D00),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

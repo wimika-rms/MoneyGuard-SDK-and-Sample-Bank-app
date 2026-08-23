@@ -16,6 +16,7 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
         private const val IDENTITY_COMPROMISED = "identity_compromised"
         private const val MONEY_GUARD_INSTALLATION_ID = "moneyguard_installation_id"
         private const val MONEY_GUARD_HAS_ACTIVE_POLICY = "moneyguard_has_active_policy"
+        private const val MONEY_GUARD_PROTECTION_WARNING = "moneyguard_protection_warning"
         private const val USER_FIRST_NAME = "user_first_name"
         
         // Bank login details
@@ -132,6 +133,14 @@ class PreferenceManager(private val context: Context): IPreferenceManager {
 
     override fun hasActivePolicy(): Boolean {
         return sharedPreferences.getBoolean(MONEY_GUARD_HAS_ACTIVE_POLICY, false)
+    }
+
+    override fun saveMoneyGuardProtectionWarning(message: String?) {
+        sharedPreferences.edit { putString(MONEY_GUARD_PROTECTION_WARNING, message) }
+    }
+
+    override fun getMoneyGuardProtectionWarning(): String? {
+        return sharedPreferences.getString(MONEY_GUARD_PROTECTION_WARNING, null)
     }
 
     override fun saveUserFirstName(firstName: String?) {

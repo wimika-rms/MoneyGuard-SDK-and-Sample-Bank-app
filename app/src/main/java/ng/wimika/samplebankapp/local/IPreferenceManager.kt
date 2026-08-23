@@ -19,6 +19,9 @@ interface IPreferenceManager {
     fun saveHasActivePolicy(hasActivePolicy: Boolean)
     fun hasActivePolicy(): Boolean
 
+    fun saveMoneyGuardProtectionWarning(message: String?)
+    fun getMoneyGuardProtectionWarning(): String?
+
     fun saveUserFirstName(firstName: String?)
     fun getUserFirstName(): String?
 

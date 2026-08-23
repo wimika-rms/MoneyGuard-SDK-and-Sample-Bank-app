@@ -12,6 +12,7 @@ import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.C
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.credential.HashAlgorithm
 import ng.wimika.moneyguard_sdk_auth.datasource.auth_service.models.LoginLocation
 import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardResult
+import ng.wimika.moneyguard_sdk_commons.types.MoneyGuardSecurityException
 import ng.wimika.moneyguard_sdk_commons.types.RiskStatus
 import ng.wimika.moneyguard_sdk_commons.types.SessionResultFlags
 import ng.wimika.moneyguard_sdk_commons.types.SpecificRisk
@@ -22,6 +23,8 @@ import ng.wimika.samplebankapp.local.IPreferenceManager
 import ng.wimika.samplebankapp.loginRepo.LoginRepository
 import ng.wimika.samplebankapp.loginRepo.LoginRepositoryImpl
 import ng.wimika.samplebankapp.loginRepo.LoginLocationProvider
+import ng.wimika.samplebankapp.ui.state.MONEYGUARD_TEMPORARILY_UNAVAILABLE_MESSAGE
+import ng.wimika.samplebankapp.ui.state.moneyGuardSecurityWarning
 import ng.wimika.samplebankapp.loginRepo.StepUpRepository
 import java.security.MessageDigest
 
@@ -231,10 +234,18 @@ class LoginViewModel(
                     return@launch
                 }
                 if (registrationResult == RegistrationResult.DEGRADED) {
-                    _sideEffect.send(LoginSideEffect.ShowToast("MoneyGuard protection is temporarily unavailable. Your bank login will continue."))
+                    preferenceManager?.saveMoneyGuardProtectionWarning(
+                        MONEYGUARD_TEMPORARILY_UNAVAILABLE_MESSAGE
+                    )
+                    _sideEffect.send(LoginSideEffect.ShowToast(MONEYGUARD_TEMPORARILY_UNAVAILABLE_MESSAGE))
                 }
-                if (registrationResult == RegistrationResult.SECURITY_REJECTED) {
-                    _sideEffect.send(LoginSideEffect.ShowToast("MoneyGuard could not verify this bank integration. Your bank login will continue without MoneyGuard protection."))
+                if (registrationResult is RegistrationResult.SecurityRejected) {
+                    val warning = moneyGuardSecurityWarning(registrationResult.code)
+                    preferenceManager?.saveMoneyGuardProtectionWarning(warning)
+                    _sideEffect.send(LoginSideEffect.ShowToast(warning))
+                }
+                if (registrationResult == RegistrationResult.SUCCESS) {
+                    preferenceManager?.saveMoneyGuardProtectionWarning(null)
                 }
 
                 // Step 3.5: Typing Pattern Check (Enrollment or Verification)
@@ -290,7 +301,9 @@ class LoginViewModel(
                 is MoneyGuardResult.Failure -> {
                     Log.e(SDK_TAG, "  ❌ RESULT: registration failed: ${finalResult.error.message}")
                     if (finalResult.error is SecurityException) {
-                        RegistrationResult.SECURITY_REJECTED
+                        RegistrationResult.SecurityRejected(
+                            (finalResult.error as? MoneyGuardSecurityException)?.code
+                        )
                     } else {
                         RegistrationResult.DEGRADED
                     }
@@ -325,6 +338,7 @@ class LoginViewModel(
                 preferenceManager?.saveMoneyGuardInstallationId(response.installationId)
                 preferenceManager?.saveHighRiskThreshold(response.highRiskThreshold)
                 preferenceManager?.saveHasActivePolicy(response.hasActivePolicy)
+                preferenceManager?.saveMoneyGuardProtectionWarning(null)
                 persistBankSession(session, pendingBankFullName)
                 clearPendingStepUp()
                 _uiState.update { it.copy(bankStepUpRequired = false, isLoading = false) }
@@ -612,10 +626,10 @@ class LoginViewModel(
     }
 }
 
-private enum class RegistrationResult {
-    SUCCESS,
-    DEGRADED,
-    SECURITY_REJECTED,
-    NEEDS_VERIFICATION,
-    BANK_STEP_UP
+private sealed interface RegistrationResult {
+    data object SUCCESS : RegistrationResult
+    data object DEGRADED : RegistrationResult
+    data class SecurityRejected(val code: String?) : RegistrationResult
+    data object NEEDS_VERIFICATION : RegistrationResult
+    data object BANK_STEP_UP : RegistrationResult
 }
