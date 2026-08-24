@@ -519,35 +519,12 @@ private fun RiskBottomSheet(message: String, onDismiss: () -> Unit) {
 
 @Composable
 private fun CredentialCheckDialog(status: String, onDismiss: () -> Unit) {
-    val token = preferenceManager?.getMoneyGuardToken()
-    val sdkService: ng.wimika.moneyguard_sdk.services.MoneyGuardSdkService? = MoneyGuardClientApp.sdkService
-    
-    var inAppContentResponse by remember { mutableStateOf<InAppContentResponse?>(null) }
-
-    LaunchedEffect(Unit) {
-        token?.let {
-            val result = sdkService?.inAppContent()?.getInAppContent(it, 1)
-            result?.onSuccess { response ->
-                inAppContentResponse = response
-            }
-        }
-    }
-
-    // Use Elvis operator for default value and takeIf for cleaner null/empty check
-    val dialogTitle = inAppContentResponse?.compromisedCredentialDialog?.title
-        .takeIf { !it.isNullOrEmpty() } ?: "Credential Check"
-
-    // Get dialog message from SDK if status is UNSAFE, otherwise use status
-    val dialogMsg = if (status == "RISK_STATUS_UNSAFE") {
-        inAppContentResponse?.compromisedCredentialDialog?.body ?: status
-    } else {
-        status
-    }
-
+    // Static content only: fetching server in-app content here made the dialog
+    // repaint mid-display with whatever copy the backend row holds.
     AlertDialog(
         onDismissRequest = {},
-        title = { Text(dialogTitle) },
-        text = { Text(dialogMsg) },
+        title = { Text("Credential Check") },
+        text = { Text(status) },
         confirmButton = { Button(onClick = onDismiss) { Text("OK") } }
     )
 }
