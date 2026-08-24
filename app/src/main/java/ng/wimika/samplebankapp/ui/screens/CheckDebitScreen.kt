@@ -292,7 +292,8 @@ fun CheckDebitScreen(
             SpecificRisk.SPECIFIC_RISK_NETWORK_WIFI_ENCRYPTION_NAME,
             SpecificRisk.SPECIFIC_RISK_NETWORK_DNS_SPOOFING_NAME,
             SpecificRisk.SPECIFIC_RISK_NETWORK_MITM_NAME,
-            SpecificRisk.SPECIFIC_RISK_USER_IDENTITY_COMPROMISE_NAME
+            SpecificRisk.SPECIFIC_RISK_USER_IDENTITY_COMPROMISE_NAME,
+            SpecificRisk.SPECIFIC_RISK_DEVICE_SECURITY_MISCONFIGURATION_USB_DEBUGGING_NAME
         )
         val standaloneHighRisk = result.status == RiskStatus.RISK_STATUS_UNSAFE_CREDENTIALS ||
                 activeRisks.any { risk -> standaloneHighRiskNames.any { risk.name.contains(it) } }
