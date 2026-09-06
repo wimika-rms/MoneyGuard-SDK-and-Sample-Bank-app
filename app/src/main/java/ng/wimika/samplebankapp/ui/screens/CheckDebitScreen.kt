@@ -76,6 +76,15 @@ data class GeoLocation(
     val lon: Double
 )
 
+internal fun launchMoneyGuardForFix(
+    launchMoneyGuard: () -> Boolean,
+    onMoneyGuardUnavailable: () -> Unit
+) {
+    if (!launchMoneyGuard()) {
+        onMoneyGuardUnavailable()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckDebitScreen(
@@ -270,6 +279,16 @@ fun CheckDebitScreen(
         alertConfirmAction = { showAlert = false }
     }
 
+    fun fixOnMoneyGuard() {
+        showAlert = false
+        launchMoneyGuardForFix(
+            launchMoneyGuard = {
+                MoneyGuardClientApp.sdkService?.utility()?.launchMoneyGuardApp() == true
+            },
+            onMoneyGuardUnavailable = onDownloadMoneyGuard
+        )
+    }
+
     fun handleRiskStatus(result: DebitTransactionCheckResult) {
         isLoading = false
 
@@ -326,10 +345,10 @@ fun CheckDebitScreen(
                 showAlert = true
                 alertTitle = "Blacklisted Account Warning"
                 alertMessage = "This destination account is on your bank's blacklist. Cancel this transfer unless you are certain it is legitimate. Continuing requires bank OTP verification."
-                alertButtonText = "Cancel Transfer"
+                alertButtonText = "Fix on MoneyGuard"
                 showSecondaryButton = true
                 alertSecondaryButtonText = "Proceed with OTP"
-                alertConfirmAction = { showAlert = false }
+                alertConfirmAction = { fixOnMoneyGuard() }
                 alertSecondaryAction = {
                     showAlert = false
                     otpInput = ""
@@ -353,10 +372,10 @@ fun CheckDebitScreen(
                         risksLine + scoreLine +
                         "\n\nProceeding is NOT recommended." +
                         if (requiresOtp) "\n\nAn OTP will be required to complete this transfer." else ""
-                alertButtonText = "Cancel Transfer"
+                alertButtonText = "Fix on MoneyGuard"
                 showSecondaryButton = true
                 alertSecondaryButtonText = "Proceed Anyway"
-                alertConfirmAction = { showAlert = false }
+                alertConfirmAction = { fixOnMoneyGuard() }
                 alertSecondaryAction = {
                     showAlert = false
                     if (requiresOtp) {
