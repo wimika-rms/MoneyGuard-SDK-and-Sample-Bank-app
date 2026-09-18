@@ -17,11 +17,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val sabiBankBaseUrl = providers.gradleProperty("SABI_BANK_BASE_URL")
-            .orElse(providers.environmentVariable("SABI_BANK_BASE_URL"))
-            .orElse("http://10.0.2.2:5103/")
+        val sabiBankBaseUrl = providers.environmentVariable("SABI_BANK_BASE_URL")
+            .orElse(providers.gradleProperty("SABI_BANK_BASE_URL"))
+            .orElse("https://moneyguard-sabi-ivcws2bpua-ue.a.run.app/")
             .get()
         buildConfigField("String", "SABI_BANK_BASE_URL", "\"$sabiBankBaseUrl\"")
+        val moneyGuardApiBaseUrl = providers.environmentVariable("MONEYGUARD_API_BASE_URL")
+            .orElse(providers.gradleProperty("MONEYGUARD_API_BASE_URL"))
+            .orElse("https://moneyguard-api-ivcws2bpua-ue.a.run.app/")
+            .get()
+        buildConfigField("String", "MONEYGUARD_API_BASE_URL", "\"$moneyGuardApiBaseUrl\"")
         manifestPlaceholders["usesCleartextTraffic"] = "false"
     }
 

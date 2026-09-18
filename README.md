@@ -689,13 +689,16 @@ Before release, test at least:
 For the sample app, explicitly set the simulator base URL on **every** build. The deployed Sabi simulator is:
 
 ```bash
-SABI_BANK_BASE_URL=https://moneyguard-sabi-bank.azurewebsites.net/ \
+SABI_BANK_BASE_URL=https://moneyguard-sabi-ivcws2bpua-ue.a.run.app/ \
+MONEYGUARD_API_BASE_URL=https://moneyguard-api-ivcws2bpua-ue.a.run.app/ \
   ./gradlew :app:assembleDebug
 
-SABI_BANK_BASE_URL=https://moneyguard-sabi-bank.azurewebsites.net/ \
+SABI_BANK_BASE_URL=https://moneyguard-sabi-ivcws2bpua-ue.a.run.app/ \
+MONEYGUARD_API_BASE_URL=https://moneyguard-api-ivcws2bpua-ue.a.run.app/ \
   ./gradlew :app:testDebugUnitTest
 
-SABI_BANK_BASE_URL=https://moneyguard-sabi-bank.azurewebsites.net/ \
+SABI_BANK_BASE_URL=https://moneyguard-sabi-ivcws2bpua-ue.a.run.app/ \
+MONEYGUARD_API_BASE_URL=https://moneyguard-api-ivcws2bpua-ue.a.run.app/ \
   ./gradlew :app:assembleRelease
 ```
 
