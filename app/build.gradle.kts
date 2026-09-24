@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "ng.wimika.samplebankapp"
-        minSdk = 29
+        minSdk = 26
         targetSdk = 35
         versionCode = 7
         versionName = "1.0.6"
